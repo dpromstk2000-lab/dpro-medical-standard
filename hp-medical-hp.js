@@ -26,8 +26,11 @@
     setText("#tagline", data?.clinic?.tagline || "");
     setText("#address", data?.clinic?.address || "");
     const phone = data?.clinic?.phone || "";
+    const hasPhone = Boolean(String(phone).trim());
     setText("#phone-text", phone);
-    const phoneHref = phone ? `tel:${phone.replace(/[^0-9+]/g, "")}` : "#";
+    show("#phone-link", hasPhone);
+    show("#mobile-phone", hasPhone);
+    const phoneHref = hasPhone ? `tel:${phone.replace(/[^0-9+]/g, "")}` : "#";
     const phoneLink = $("#phone-link");
     if (phoneLink) phoneLink.href = phoneHref;
     const mobilePhone = $("#mobile-phone");
