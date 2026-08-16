@@ -1,0 +1,15 @@
+DPRO MEDICAL FINAL-UI-2.1 PATIENT TOP HOTFIX
+STATUS: PASS
+
+cancelled excluded from active appointment: PASS
+questionnaire CTA requires active appointment: PASS
+hospital HP link fixed: PASS
+internal error code not displayed: PASS
+JS syntax: PASS
+
+CHANGES:
+- cancelled / completed / no_show are not treated as active patient-top appointments
+- top WEB questionnaire CTA is hidden when there is no active appointment
+- appointment badge is hidden when there is no active appointment
+- hospital HP button links to medical-site-index.html
+- API/Auth/Runtime/DB/Worker/System Check unchanged
