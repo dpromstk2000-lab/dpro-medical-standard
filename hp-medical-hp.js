@@ -78,6 +78,9 @@
   }
 
   function renderRoutes(data) {
+    const lineEnabled = flag(data, "feature_line_booking") && Boolean(String(cfg.routes.lineBooking || "").trim());
+    show("#line-section", lineEnabled);
+
     const mappings = [
       ["#web-booking", "feature_web_booking", cfg.routes.webBooking],
       ["#line-booking", "feature_line_booking", cfg.routes.lineBooking],
