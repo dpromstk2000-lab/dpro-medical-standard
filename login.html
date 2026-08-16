@@ -37,9 +37,9 @@
   form.addEventListener('submit',async e=>{
     e.preventDefault();button.disabled=true;show('ログインしています...');
     try{await DPRO_MEDICAL_AUTH.signInStaff({email:form.email.value,password:form.password.value});await contextAndRoute();}
-    catch(err){if(err.code==='AUTHORIZATION_FAILED'||err.code==='AUTH_ACTOR_MISMATCH'||err.code==='CROSS_CLINIC_DENIED'){try{await DPRO_MEDICAL_AUTH.signOut();}catch(_){}}show('ログインできませんでした。 '+(err.code||'AUTH_ERROR'),true);button.disabled=false;}
+    catch(err){if(err.code==='AUTHORIZATION_FAILED'||err.code==='AUTH_ACTOR_MISMATCH'||err.code==='CROSS_CLINIC_DENIED'){try{await DPRO_MEDICAL_AUTH.signOut();}catch(_){}}show('ログインできませんでした。入力内容をご確認ください。',true);button.disabled=false;}
   });
-  (async()=>{try{const session=await DPRO_MEDICAL_AUTH.getSession();if(!session){show('メールアドレスとパスワードを入力してください。');return;}await contextAndRoute();}catch(err){show(err.code==='AUTH_CONFIG_REQUIRED'?'公開Auth設定を確認してください。':'ログインしてください。',err.code==='AUTH_CONFIG_REQUIRED');}})();
+  (async()=>{try{const session=await DPRO_MEDICAL_AUTH.getSession();if(!session){show('メールアドレスとパスワードを入力してください。');return;}await contextAndRoute();}catch(err){show('ログインしてください。');}})();
 })();
 </script>
 </body>

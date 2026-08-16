@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DPROメディカルクリニック DEMO | DPRO MEDICAL</title>
-  <meta name="description" content="DPRO MEDICAL STANDARD DEMO / MOCK">
+  <meta name="description" content="DPRO MEDICAL 医院ホームページ デモ">
   <link rel="stylesheet" href="medical-site-style.css">
 </head>
 <body>
@@ -77,13 +77,13 @@
 
   <section class="section" id="line-section" aria-labelledby="line-title"><div class="wrap"><p class="eyebrow">LINE</p><h2 id="line-title">LINE</h2><div class="card"><p>LINE予約・患者操作への公開導線です。</p></div></div></section>
 
-  <section class="section" id="questionnaire" aria-labelledby="questionnaire-title"><div class="wrap"><p class="eyebrow">QUESTIONNAIRE</p><h2 id="questionnaire-title">WEB問診</h2><div class="card"><p>WEB問診本体は患者側/CORE仕様へ安全に接続します。HP静的領域には問診内容や個人医療情報を保存しません。</p><a class="btn" id="questionnaire-cta" href="#questionnaire">問診導線を確認</a></div></div></section>
+  <section class="section" id="questionnaire" aria-labelledby="questionnaire-title"><div class="wrap"><p class="eyebrow">QUESTIONNAIRE</p><h2 id="questionnaire-title">WEB問診</h2><div class="card"><p>来院前にWEB問診をご利用いただけます。</p><a class="btn" id="questionnaire-cta" href="#questionnaire">WEB問診を利用する</a></div></div></section>
 
-  <section class="section" id="access" aria-labelledby="access-title"><div class="wrap"><p class="eyebrow">ACCESS</p><h2 id="access-title">アクセス</h2><div class="card"><strong id="address">医院情報を確認中</strong><p>DPRO MEDICAL COREの公開医院基本情報を参照します。</p></div></div></section>
+  <section class="section" id="access" aria-labelledby="access-title"><div class="wrap"><p class="eyebrow">ACCESS</p><h2 id="access-title">アクセス</h2><div class="card"><strong id="address">医院情報を確認中</strong><p>所在地・交通案内をご確認いただけます。</p></div></div></section>
 </main>
-<footer class="site-footer"><div class="wrap footer-grid"><div><strong>DPRO MEDICAL</strong><p class="small">CORE連動型 医院HP INTEGRATION READY V1.2</p></div><p class="small">HP専用DBなし / PUBLIC config only / Feature Flag連動</p></div></footer>
+<footer class="site-footer"><div class="wrap footer-grid"><div><strong>DPRO MEDICAL</strong><p class="small">医院からのお知らせ・診療情報をご案内します。</p></div><p class="small">ご不明な点は医院へお問い合わせください。</p></div></footer>
 <div class="mobile-bar" aria-label="スマホ固定操作"><a href="#booking">予約</a><a id="mobile-line" href="#line-section">LINE</a><a href="#" id="mobile-phone">電話</a></div>
-<div class="runtime-badges" aria-live="polite"><div class="source-badge mode-badge" id="runtime-mode">MODE: LOADING</div><div class="source-badge" id="data-source">DATA SOURCE: LOADING</div></div>
+<div class="runtime-badges" aria-hidden="true" style="display:none"><div id="runtime-mode"></div><div id="data-source"></div></div>
 <script src="hp-config-demo.js"></script>
 <script src="hp-core-api.js"></script>
 <script src="hp-medical-hp.js"></script>
