@@ -13,14 +13,14 @@
 <body>
 <main class="wrap"><section class="card">
 <h1>患者ログイン</h1>
-<p>STANDARD V1.3 Runtime E2Eでは <strong>メールアドレス + パスワード</strong> を患者Auth入口として使用します。</p>
+<p><strong>メールアドレスとパスワード</strong> を入力してログインしてください。</p>
 <form id="form" autocomplete="on">
 <label for="email">メールアドレス</label><input id="email" name="email" type="email" autocomplete="username" required>
 <label for="password">パスワード</label><input id="password" name="password" type="password" autocomplete="current-password" required>
 <button id="submit" type="submit">ログイン</button>
 </form>
 <div id="message" class="msg">認証状態を確認しています...</div>
-<p class="small">ログイン後、COREがpatient_auth_linksをserver-side確認します。紐付けが無いAuth userは患者画面へ入りません。</p>
+<p class="small">登録済みの患者アカウントのみご利用いただけます。</p>
 <div class="links"><a href="login.html">スタッフログインはこちら</a></div>
 </section></main>
 <script>

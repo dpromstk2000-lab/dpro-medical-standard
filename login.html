@@ -13,14 +13,14 @@
 <body>
 <main class="wrap"><section class="card">
 <h1>スタッフログイン</h1>
-<p>院内管理画面はSupabase Authで認証し、権限はCOREの <code>/context</code> で確認します。</p>
+<p>メールアドレスとパスワードを入力してログインしてください。</p>
 <form id="form" autocomplete="on">
 <label for="email">メールアドレス</label><input id="email" name="email" type="email" autocomplete="username" required>
 <label for="password">パスワード</label><input id="password" name="password" type="password" autocomplete="current-password" required>
 <button id="submit" type="submit">ログイン</button>
 </form>
 <div id="message" class="msg">認証状態を確認しています...</div>
-<p class="small">Browser入力のroleは権限判定に使用しません。Service Role / secret keyはこのページへ配置しません。</p>
+<p class="small">スタッフ権限が設定されたアカウントのみご利用いただけます。</p>
 <div class="links"><a href="patient-login.html">患者ログインはこちら</a></div>
 </section></main>
 <script>
