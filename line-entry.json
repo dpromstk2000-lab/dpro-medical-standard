@@ -1,0 +1,51 @@
+{
+  "project": "DPRO MEDICAL",
+  "tab": "TAB-B",
+  "tab_code": "MED-PATIENT",
+  "version": "V1.5",
+  "principle": "LINE -> SECURE WEB",
+  "menu": [
+    {
+      "action_key": "booking",
+      "label": "予約する",
+      "target": "patient-reservation.html",
+      "feature_flag": "feature_line_booking"
+    },
+    {
+      "action_key": "digital_card",
+      "label": "診察券",
+      "target": "patient-digital-card.html",
+      "feature_flag": null,
+      "note": "card always visible; QR section uses feature_qr_checkin"
+    },
+    {
+      "action_key": "same_day_reception",
+      "label": "当日受付",
+      "target": "patient-reception.html",
+      "feature_flag": "feature_queue"
+    },
+    {
+      "action_key": "questionnaire",
+      "label": "WEB問診",
+      "target": "patient-questionnaire.html",
+      "feature_flag": "feature_questionnaire"
+    },
+    {
+      "action_key": "wait_status",
+      "label": "待ち状況",
+      "target": "patient-wait-status.html",
+      "feature_flag": "feature_queue"
+    },
+    {
+      "action_key": "clinic_hp",
+      "label": "医院HP",
+      "target": "#",
+      "feature_flag": null,
+      "note": "not gated by feature_web_booking"
+    }
+  ],
+  "privacy_rule": "LINE本文にはセンシティブな医療情報を不用意に掲載しない",
+  "integration": "context.features",
+  "family": "HOLD / feature_family OFF",
+  "runtime": "production: api / demo: explicit protected demo_mock"
+}

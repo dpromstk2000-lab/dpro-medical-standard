@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DPRO MEDICAL | 医院ホームページ</title>
+  <meta name="description" content="DPRO MEDICAL COREと連動する医院ホームページ">
+  <link rel="stylesheet" href="medical-site-style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="#top" id="clinic-name">DPRO MEDICAL</a>
+    <nav class="nav" aria-label="主要メニュー">
+      <a href="#departments">診療案内</a><a href="#doctors">医師紹介</a><a href="#hours">診療時間</a><a href="#waiting-section">待ち状況</a><a href="#news">お知らせ</a><a href="#access">アクセス</a>
+    </nav>
+  </div>
+</header>
+<main id="top">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow">DPRO MEDICAL</p>
+        <h1 id="hero-name">医院情報を確認中</h1>
+        <p class="lead" id="tagline"></p>
+        <div class="cta-row" id="booking">
+          <a class="btn" id="web-booking" href="#booking">WEB予約</a>
+          <a class="btn secondary" id="line-booking" href="#line-section">LINE予約</a>
+          <a class="btn soft" id="phone-link" href="#">電話 <span id="phone-text">確認中</span></a>
+        </div>
+      </div>
+      <aside class="status-panel" aria-label="本日の診療状況">
+        <div class="status-row"><span>本日の診療</span><span class="status-value" id="clinic-status">状態確認中</span></div>
+        <div class="status-row"><span>受付</span><span class="status-value" id="reception-status">受付状況確認中</span></div>
+        <p id="status-message">最新情報を確認しています。</p>
+        <p class="status-note" id="status-updated"></p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="action-title">
+    <div class="wrap">
+      <p class="eyebrow">ACTION</p><h2 id="action-title">受診前の操作</h2>
+      <div class="action-grid">
+        <a class="action-card" id="datetime-booking" href="#booking"><strong>日時指定予約</strong><p>空いている日時から予約します。</p></a>
+        <a class="action-card" id="same-day-reception" href="#waiting-section"><strong>当日受付</strong><p>現在の待ち状況を確認して受付へ。</p></a>
+        <a class="action-card" id="questionnaire-link" href="#questionnaire"><strong>WEB問診</strong><p>来院前に問診を入力します。</p></a>
+        <a class="action-card" href="#line-section" id="line-booking-card"><strong>LINE</strong><p>予約・確認など患者操作へ接続。</p></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="waiting-section" aria-labelledby="waiting-title">
+    <div class="wrap">
+      <p class="eyebrow">WAITING</p><h2 id="waiting-title">現在の待ち状況</h2>
+      <div class="waiting-card">
+        <div class="metric"><span>現在待ち人数</span><strong id="waiting-count">—</strong></div>
+        <div class="metric"><span>待ち時間目安</span><strong id="waiting-minutes">—</strong></div>
+      </div>
+      <p class="small" id="waiting-updated"></p>
+      <p class="small">表示は院内全体の待ち人数等の目安です。患者個人の待ち状況ではありません。</p>
+    </div>
+  </section>
+
+  <section class="section" id="departments" aria-labelledby="departments-title"><div class="wrap"><p class="eyebrow">DEPARTMENTS</p><h2 id="departments-title">診療案内</h2><div class="grid" id="departments-list"></div></div></section>
+  <section class="section" id="doctors" aria-labelledby="doctors-title"><div class="wrap"><p class="eyebrow">DOCTORS</p><h2 id="doctors-title">医師紹介</h2><div class="grid" id="doctors-list"></div></div></section>
+
+  <section class="section" id="hours" aria-labelledby="hours-title">
+    <div class="wrap">
+      <p class="eyebrow">HOURS</p><h2 id="hours-title">診療時間・休診</h2>
+      <table class="hours"><thead><tr><th>曜日</th><th>午前</th><th>午後</th></tr></thead><tbody id="hours-body"></tbody></table>
+      <div class="notice"><strong>臨時休診</strong><ul id="closures-list"></ul></div>
+    </div>
+  </section>
+
+  <section class="section" id="news" aria-labelledby="news-title"><div class="wrap"><p class="eyebrow">NEWS</p><h2 id="news-title">お知らせ</h2><ul class="news" id="news-list"></ul></div></section>
+
+  <section class="section" id="line-section" aria-labelledby="line-title"><div class="wrap"><p class="eyebrow">LINE</p><h2 id="line-title">LINE</h2><div class="card"><p>LINE予約・患者操作への公開導線です。</p></div></div></section>
+
+  <section class="section" id="questionnaire" aria-labelledby="questionnaire-title"><div class="wrap"><p class="eyebrow">QUESTIONNAIRE</p><h2 id="questionnaire-title">WEB問診</h2><div class="card"><p>WEB問診本体は患者側/CORE仕様へ安全に接続します。HP静的領域には問診内容や個人医療情報を保存しません。</p><a class="btn" id="questionnaire-cta" href="#questionnaire">問診導線を確認</a></div></div></section>
+
+  <section class="section" id="access" aria-labelledby="access-title"><div class="wrap"><p class="eyebrow">ACCESS</p><h2 id="access-title">アクセス</h2><div class="card"><strong id="address">医院情報を確認中</strong><p>DPRO MEDICAL COREの公開医院基本情報を参照します。</p></div></div></section>
+</main>
+<footer class="site-footer"><div class="wrap footer-grid"><div><strong>DPRO MEDICAL</strong><p class="small">CORE連動型 医院HP INTEGRATION READY V1.2</p></div><p class="small">HP専用DBなし / PUBLIC config only / Feature Flag連動</p></div></footer>
+<div class="mobile-bar" aria-label="スマホ固定操作"><a href="#booking">予約</a><a id="mobile-line" href="#line-section">LINE</a><a href="#" id="mobile-phone">電話</a></div>
+<div class="runtime-badges" aria-live="polite"><div class="source-badge mode-badge" id="runtime-mode">MODE: LOADING</div><div class="source-badge" id="data-source">DATA SOURCE: LOADING</div></div>
+<script src="config.js"></script>
+<script src="hp-config.js"></script>
+<script src="hp-core-api.js"></script>
+<script src="hp-medical-hp.js"></script>
+</body></html>

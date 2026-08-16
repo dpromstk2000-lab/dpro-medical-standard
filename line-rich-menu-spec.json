@@ -1,0 +1,31 @@
+{
+  "version": "V1.5",
+  "layout": {
+    "top": [
+      "予約する",
+      "診察券",
+      "当日受付"
+    ],
+    "bottom": [
+      "WEB問診",
+      "待ち状況",
+      "医院HP"
+    ]
+  },
+  "feature_gate": {
+    "予約する": "feature_line_booking",
+    "診察券": null,
+    "QR部分": "feature_qr_checkin",
+    "当日受付": "feature_queue",
+    "WEB問診": "feature_questionnaire",
+    "待ち状況": "feature_queue",
+    "医院HP": null
+  },
+  "secure_web_required": [
+    "予約詳細",
+    "問診詳細",
+    "患者個別待ち状況"
+  ],
+  "line_message_rule": "病名・症状・検査結果等をLINE本文へ掲載しない",
+  "runtime": "production: api / demo: explicit protected demo_mock"
+}
