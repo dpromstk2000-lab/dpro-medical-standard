@@ -1,0 +1,89 @@
+name: DPRO MEDICAL PUBLIC DEMO SALES COPY V1.2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/medical-public-demo-sales-copy-v1-2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sales-copy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace customer-facing jargon only
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('medical-public-demo.html')
+          s=p.read_text(encoding='utf-8')
+
+          replacements = [
+            ('6診療PRESET・5画面を30秒体験','6診療科モデル・5画面を30秒体験'),
+            ('6PRESETと5つの利用画面','6診療科モデルと5つの利用画面'),
+            ('患者側と医院側を同じCOREでつなぎ','患者側と医院側をひとつの共通基盤でつなぎ'),
+            ('<strong>6 PRESET</strong>','<strong>6 診療科モデル</strong>'),
+            ('<strong>5 EXPERIENCE</strong>','<strong>5 利用画面</strong>'),
+            ('<strong>ONE CORE</strong>','<strong>共通基盤</strong>'),
+            ('>6PRESETを比較する<','>6診療科モデルを比較する<'),
+            ('>PRODUCT SITEで詳しく見る ↗<','>製品サイトで詳しく見る ↗<'),
+            ('>OFFICIAL SITEで導入を見る ↗<','>公式サイトで導入を見る ↗<'),
+            ('診療科PRESETを変更','診療科モデルを変更'),
+            ('同じCOREの差分を比較','診療科ごとの違いを比較'),
+            ('>6PRESETを比較<','>6診療科モデルを比較<'),
+            ('>6PRESETの違いを一目で比較<','>6診療科モデルの違いを一目で比較<'),
+            ('<strong>共通COREは同じ。</strong>','<strong>共通基盤は同じ。</strong>'),
+            ('<strong>全PRESET共通</strong>','<strong>全診療科モデル共通</strong>'),
+            ('診療科の違いはPRESETで吸収し','診療科の違いは設定で切り替え'),
+            ('>② 6診療科をONE COREで<','>② 6診療科をひとつの基盤で<'),
+            ('>詳しい機能をPRODUCT SITEで見る ↗<','>詳しい機能を製品サイトで見る ↗<'),
+            ('>導入・相談をOFFICIAL SITEで見る ↗<','>導入・相談を公式サイトで見る ↗<'),
+            ('PRESET差分を見てください','診療科モデルの違いを見てください'),
+            ('診療科PRESETの違いまで確認できました','診療科モデルの違いまで確認できました'),
+            ('>PRESETを比較<','>診療科モデルを比較<'),
+            ('上のPRESET・利用画面を切り替えて比較できます','上の診療科モデル・利用画面を切り替えて比較できます'),
+          ]
+
+          for old,new in replacements:
+              s=s.replace(old,new)
+
+          visible_forbidden = [
+            '同じCORE','6 PRESET','5 EXPERIENCE','ONE CORE',
+            '6PRESETを比較','診療科PRESET','共通CORE','全PRESET共通',
+            'PRODUCT SITEで','OFFICIAL SITEで'
+          ]
+          remaining=[x for x in visible_forbidden if x in s]
+          if remaining:
+              raise SystemExit('Visible jargon remains: '+', '.join(remaining))
+
+          required = [
+            '6 診療科モデル','5 利用画面','共通基盤',
+            '製品サイトで詳しく見る','公式サイトで導入を見る',
+            '診療科モデルの違いを一目で比較'
+          ]
+          missing=[x for x in required if x not in s]
+          if missing:
+              raise SystemExit('Required sales copy missing: '+', '.join(missing))
+
+          p.write_text(s,encoding='utf-8')
+          print('SALES COPY QA: PASS')
+          PY
+
+      - name: Commit and remove workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/medical-public-demo-sales-copy-v1-2.yml
+          git config user.name "dpro-ready-bot"
+          git config user.email "dpro-ready-bot@users.noreply.github.com"
+          git add medical-public-demo.html .github/workflows/medical-public-demo-sales-copy-v1-2.yml
+          git commit -m "MEDICAL public demo sales copy V1.2"
+          git push origin HEAD:main
