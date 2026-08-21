@@ -12,8 +12,8 @@ DEMO DATA: fictional only; no production writes
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>DPRO MEDICAL｜公開LIVE DEMO｜6診療PRESET・5画面を30秒体験</title>
-<meta name="description" content="DPRO MEDICALの公開LIVE DEMO。患者スマホで受付し、医院管理PCへの反映を確認。STANDARD・眼科・小児科・整形外科・美容医療・婦人科/女性医療の6PRESETと5つの利用画面を30秒で比較できます。">
+<title>DPRO MEDICAL｜公開LIVE DEMO｜6診療科モデル・5画面を30秒体験</title>
+<meta name="description" content="DPRO MEDICALの公開LIVE DEMO。患者スマホで受付し、医院管理PCへの反映を確認。STANDARD・眼科・小児科・整形外科・美容医療・婦人科/女性医療の6診療科モデルと5つの利用画面を30秒で比較できます。">
 <style>
 :root{
   --ink:#15324a;--muted:#61788b;--line:#d5e2eb;--bg:#f3f8fb;--blue:#1769aa;--blue2:#0f5792;
@@ -187,24 +187,24 @@ a{color:inherit}
 <body>
 <main class="wrap">
 <section class="hero">
-  <div class="eyebrow">DPRO MEDICAL PUBLIC LIVE DEMO V1.1</div>
+  <div class="eyebrow">DPRO MEDICAL 公開LIVE DEMO V1.3</div>
   <h1>患者で受付すると、<em>医院側まで動く。</em><br>30秒でつながりを体験。</h1>
-  <p class="lead">予約・WEB問診・来院受付・院内進行・待ち状況・次回フォローまで。DPRO MEDICALは患者側と医院側を同じCOREでつなぎ、診療科に合わせて必要な機能だけを切り替えます。</p>
+  <p class="lead">予約・WEB問診・来院受付・院内進行・待ち状況・次回フォローまで。DPRO MEDICALは患者側と医院側をひとつの共通基盤でつなぎ、診療科に合わせて必要な機能だけを切り替えます。</p>
 
   <div class="hero-proof">
-    <div class="proof"><small>診療科</small><strong>6 PRESET</strong></div>
-    <div class="proof"><small>利用画面</small><strong>5 EXPERIENCE</strong></div>
-    <div class="proof"><small>システム基盤</small><strong>ONE CORE</strong></div>
+    <div class="proof"><small>診療科</small><strong>6 診療科モデル</strong></div>
+    <div class="proof"><small>利用画面</small><strong>5 利用画面</strong></div>
+    <div class="proof"><small>システム基盤</small><strong>共通基盤</strong></div>
   </div>
 
   <div class="hero-actions">
     <button class="hero-btn primary" type="button" onclick="startTour()">おすすめ30秒体験を開始</button>
-    <a class="hero-btn" href="#presets">6PRESETを比較する</a>
-    <a class="hero-btn" href="https://dpromstk2000-lab.github.io/dpro-line-systems-site/systems/medical.html" target="_blank" rel="noopener">PRODUCT SITEで詳しく見る ↗</a>
-    <a class="hero-btn" href="https://dpro-shop.com/systems/medical" target="_blank" rel="noopener">OFFICIAL SITEで導入を見る ↗</a>
+    <a class="hero-btn" href="#presets">6診療科モデルを比較する</a>
+    <a class="hero-btn" href="https://dpromstk2000-lab.github.io/dpro-line-systems-site/systems/medical.html" target="_blank" rel="noopener">製品サイトで詳しく見る ↗</a>
+    <a class="hero-btn" href="https://dpro-shop.com/systems/medical" target="_blank" rel="noopener">公式サイトで導入を見る ↗</a>
   </div>
 
-  <div class="sales-tip">おすすめの見方：①患者スマホで「予約・受付」 → ②医院管理PCへ切替 → ③診療科PRESETを変更。DPRO MEDICALの強みが最短で伝わります。</div>
+  <div class="sales-tip">おすすめの見方：①患者スマホで「予約・受付」 → ②医院管理PCへ切替 → ③診療科モデルを変更。DPRO MEDICALの強みが最短で伝わります。</div>
 
   <div class="api"><span id="apiDot" class="dot"></span><div><strong id="apiText">共通基盤を確認中</strong><small>公開DEMOの接続状態を確認しています。体験操作は架空データのみを使用します。</small></div></div>
 </section>
@@ -214,16 +214,16 @@ a{color:inherit}
   <div class="tour-grid">
     <article class="tour-step" id="tour1"><b>1</b><strong>患者スマホで受付</strong><p>患者側から「予約・受付」を押して、来院操作を体験。</p><button type="button" onclick="goRole('patient')">患者スマホを開く</button></article>
     <article class="tour-step" id="tour2"><b>2</b><strong>医院側の反映を見る</strong><p>受付済・待ち人数が変わるところを医院管理PCで確認。</p><button type="button" onclick="goRole('owner')">医院管理PCを見る</button></article>
-    <article class="tour-step" id="tour3"><b>3</b><strong>診療科の違いを見る</strong><p>眼科・小児科などへ切り替えて、同じCOREの差分を比較。</p><button type="button" onclick="document.getElementById('presets').scrollIntoView({behavior:'smooth'})">6PRESETを比較</button></article>
+    <article class="tour-step" id="tour3"><b>3</b><strong>診療科の違いを見る</strong><p>眼科・小児科などへ切り替えて、診療科ごとの違いを比較。</p><button type="button" onclick="document.getElementById('presets').scrollIntoView({behavior:'smooth'})">6診療科モデルを比較</button></article>
   </div>
   <div id="tourResult" class="tour-result">まだ受付操作はしていません。まず患者スマホの「予約・受付」を押してみてください。</div>
 </section>
 
-<div class="section-head" id="presets"><h2><span class="num">2</span>6PRESETの違いを一目で比較</h2><p><strong>共通COREは同じ。</strong> 診療科ごとに必要な機能・表示・進行だけを切り替えます。</p></div>
+<div class="section-head" id="presets"><h2><span class="num">2</span>6診療科モデルの違いを一目で比較</h2><p><strong>共通基盤は同じ。</strong> 診療科ごとに必要な機能・表示・進行だけを切り替えます。</p></div>
 <section class="preset-zone">
   <div id="presetGrid" class="preset-grid"></div>
   <div class="preset-diff">
-    <div class="diff-box"><strong>全PRESET共通</strong><div class="chips"><span class="chip core">予約</span><span class="chip core">WEB問診</span><span class="chip core">来院受付</span><span class="chip core">院内進行</span><span class="chip core">待ち状況</span></div></div>
+    <div class="diff-box"><strong>全診療科モデル共通</strong><div class="chips"><span class="chip core">予約</span><span class="chip core">WEB問診</span><span class="chip core">来院受付</span><span class="chip core">院内進行</span><span class="chip core">待ち状況</span></div></div>
     <div class="diff-box"><strong id="diffTitle">STANDARDで追加・強化される部分</strong><div id="diffChips" class="chips"></div></div>
   </div>
 </section>
@@ -253,19 +253,19 @@ a{color:inherit}
 
 <section class="safe">
   <h2>営業で伝える3つのポイント</h2>
-  <p>単に「予約ができる」だけではありません。患者の行動と院内業務を一つにつなぎ、診療科の違いはPRESETで吸収し、公開DEMOと実運用の認証・データ境界を分けています。</p>
+  <p>単に「予約ができる」だけではありません。患者の行動と院内業務を一つにつなぎ、診療科の違いは設定で切り替え、公開DEMOと実運用の認証・データ境界を分けています。</p>
   <div class="safe-grid">
     <div class="safe-item"><strong>① 患者と医院がつながる</strong><small>予約・問診・受付・進行・待ち状況を別々の画面に分散させない。</small></div>
-    <div class="safe-item"><strong>② 6診療科をONE COREで</strong><small>診療科ごとに別製品を作らず、必要な機能だけを医院ごとに設定。</small></div>
+    <div class="safe-item"><strong>② 6診療科をひとつの基盤で</strong><small>診療科ごとに別製品を作らず、必要な機能だけを医院ごとに設定。</small></div>
     <div class="safe-item"><strong>③ 公開DEMOも安全境界を維持</strong><small>架空データのみ。秘密鍵・実患者情報・管理認証情報を公開しない。</small></div>
   </div>
 </section>
 
 <div class="hero-actions" aria-label="DEMO体験後の次の導線">
-  <a class="hero-btn" href="https://dpromstk2000-lab.github.io/dpro-line-systems-site/systems/medical.html" target="_blank" rel="noopener">詳しい機能をPRODUCT SITEで見る ↗</a>
-  <a class="hero-btn primary" href="https://dpro-shop.com/systems/medical" target="_blank" rel="noopener">導入・相談をOFFICIAL SITEで見る ↗</a>
+  <a class="hero-btn" href="https://dpromstk2000-lab.github.io/dpro-line-systems-site/systems/medical.html" target="_blank" rel="noopener">詳しい機能を製品サイトで見る ↗</a>
+  <a class="hero-btn primary" href="https://dpro-shop.com/systems/medical" target="_blank" rel="noopener">導入・相談を公式サイトで見る ↗</a>
 </div>
-<div class="foot">DPRO MEDICAL PUBLIC DEMO RELEASE V1.1 / 3-SITE NAV HOTFIX / ONE CORE · ONE CONTRACT · MULTI PRESET</div>
+<div class="foot">DPRO MEDICAL 公開LIVE DEMO V1.3 / 共通基盤・診療科別設定・安全な公開DEMO</div>
 </main>
 
 <div class="mobile-dock" aria-label="モバイル操作">
@@ -337,8 +337,8 @@ function renderTour(){
   const t=document.getElementById("tourResult");
   if(!checked) t.textContent="まだ受付操作はしていません。まず患者スマホの「予約・受付」を押してみてください。";
   else if(role!=="owner") t.textContent="受付が完了しました。次は「医院管理PC」を開くと、受付済・待ち人数の変化を確認できます。";
-  else if(preset==="STANDARD") t.textContent="医院側への反映まで確認できました。最後に眼科・小児科などへ切り替えてPRESET差分を見てください。";
-  else t.textContent="30秒ツアー完了。患者→医院の連動と、診療科PRESETの違いまで確認できました。";
+  else if(preset==="STANDARD") t.textContent="医院側への反映まで確認できました。最後に眼科・小児科などへ切り替えて診療科モデルの違いを見てください。";
+  else t.textContent="30秒ツアー完了。患者→医院の連動と、診療科モデルの違いまで確認できました。";
 }
 function specialCard(p){
   return `<div class="special-box"><strong>${preset}｜${p.jp}</strong><p>${p.special}</p><div class="chips">${p.features.map(x=>`<span class="chip special">${x}</span>`).join("")}</div></div>`;
@@ -346,8 +346,8 @@ function specialCard(p){
 function guideHtml(){
   if(role==="patient"&&!checked) return `<div class="guide"><span>ここを操作：下の「予約・受付」を押すと、医院側の数字が変わります。</span></div>`;
   if(checked&&role!=="owner") return `<div class="guide success"><span>受付済み。医院管理PCで反映を確認できます。</span><button type="button" onclick="goRole('owner')">医院管理PCを見る</button></div>`;
-  if(checked&&role==="owner") return `<div class="guide success"><span>連動確認：受付済 6→7、待ち 3→4 に変化しています。</span><button type="button" onclick="document.getElementById('presets').scrollIntoView({behavior:'smooth'})">PRESETを比較</button></div>`;
-  return `<div class="guide"><span>${PRESETS[preset].jp}の画面例です。上のPRESET・利用画面を切り替えて比較できます。</span></div>`;
+  if(checked&&role==="owner") return `<div class="guide success"><span>連動確認：受付済 6→7、待ち 3→4 に変化しています。</span><button type="button" onclick="document.getElementById('presets').scrollIntoView({behavior:'smooth'})">診療科モデルを比較</button></div>`;
+  return `<div class="guide"><span>${PRESETS[preset].jp}の画面例です。上の診療科モデル・利用画面を切り替えて比較できます。</span></div>`;
 }
 function patientView(p){
   return `${guideHtml()}<div class="phone">
