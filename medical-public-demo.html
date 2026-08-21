@@ -206,7 +206,7 @@ a{color:inherit}
 
   <div class="sales-tip">おすすめの見方：①患者スマホで「予約・受付」 → ②医院管理PCへ切替 → ③診療科PRESETを変更。DPRO MEDICALの強みが最短で伝わります。</div>
 
-  <div class="api"><span id="apiDot" class="dot"></span><div><strong id="apiText">DPRO MEDICAL CORE Worker 接続確認中</strong><small>公開health endpointのみを確認。DEMO操作は架空データで、本番書込みは行いません。</small></div></div>
+  <div class="api"><span id="apiDot" class="dot"></span><div><strong id="apiText">共通基盤を確認中</strong><small>公開DEMOの接続状態を確認しています。体験操作は架空データのみを使用します。</small></div></div>
 </section>
 
 <div class="section-head"><h2><span class="num">1</span>まずは「つながる」を30秒で見る</h2><p>説明を読むより、患者側の操作が医院側へ反映される流れを見るのが一番早いです。</p></div>
@@ -411,10 +411,10 @@ renderAll();
   try{
     const r=await fetch("https://dpro-medical-core.dpromstk2000.workers.dev/api/medical/v1/health",{headers:{Accept:"application/json"},cache:"no-store"});
     const j=await r.json();
-    if(r.ok&&j){dot.classList.add("ok");text.textContent="DPRO MEDICAL CORE Worker 公開health応答あり";}
+    if(r.ok&&j){dot.classList.add("ok");text.textContent="共通基盤：接続確認済み";}
     else throw new Error("HTTP "+r.status);
   }catch(_){
-    text.textContent="DPRO MEDICAL CORE Worker：ブラウザから接続確認待ち";
+    text.textContent="共通基盤：接続確認待ち";
   }
 })();
 </script>

@@ -4,6 +4,7 @@
 window.DPRO_MEDICAL_CONFIG = Object.freeze({
   appName: "DPRO MEDICAL",
   integrationVersion: "INTEGRATION-1 STANDARD V1.3",
+  frontendVersion: "MEDICAL-READY-V1.1-PAGES-20260821",
   preset: "STANDARD",
 
   // Production-safe defaults. Browser URL/query MUST NOT switch this to demo.

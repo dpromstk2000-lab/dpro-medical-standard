@@ -1,6 +1,9 @@
 /** DPRO MEDICAL TAB-B DEMO MOCK ONLY. Never load unconditionally in production HTML. */
 (function(){
 "use strict";
+const demoDate=(offset)=>new Date(Date.now()+9*60*60*1000+offset*86400000).toISOString().slice(0,10);
+const demoAt=(date,time)=>`${date}T${time}:00+09:00`;
+const DEMO_DATE_1=demoDate(1),DEMO_DATE_2=demoDate(2);
 const M={
  meta:{project:"DPRO MEDICAL",tab:"TAB-B",tab_code:"MED-PATIENT",version:"V1.5",mode:"demo_mock"},
  feature_flags:{feature_web_booking:true,feature_line_booking:true,feature_datetime_booking:true,feature_queue:true,feature_time_window:true,feature_questionnaire:true,feature_family:false,feature_qr_checkin:true,feature_line_call:true,feature_hp_waiting:true},
@@ -15,14 +18,14 @@ const M={
   {appointment_type_id:"mock_appointment_type_005",name:"直接来院",booking_mode:"walk_in",is_active:true}
  ],
  appointment_slots:[
-  {appointment_slot_id:"mock_slot_001",appointment_type_id:"mock_appointment_type_001",appointment_date:"2026-08-18",start_at:"2026-08-18T09:00:00+09:00",end_at:"2026-08-18T09:30:00+09:00",available:true},
-  {appointment_slot_id:"mock_slot_002",appointment_type_id:"mock_appointment_type_001",appointment_date:"2026-08-18",start_at:"2026-08-18T09:30:00+09:00",end_at:"2026-08-18T10:00:00+09:00",available:true},
-  {appointment_slot_id:"mock_slot_003",appointment_type_id:"mock_appointment_type_003",appointment_date:"2026-08-18",start_at:"2026-08-18T10:00:00+09:00",end_at:"2026-08-18T11:00:00+09:00",available:true},
-  {appointment_slot_id:"mock_slot_004",appointment_type_id:"mock_appointment_type_001",appointment_date:"2026-08-19",start_at:"2026-08-19T09:30:00+09:00",end_at:"2026-08-19T10:00:00+09:00",available:true}
+  {appointment_slot_id:"mock_slot_001",appointment_type_id:"mock_appointment_type_001",appointment_date:DEMO_DATE_1,start_at:demoAt(DEMO_DATE_1,"09:00"),end_at:demoAt(DEMO_DATE_1,"09:30"),available:true},
+  {appointment_slot_id:"mock_slot_002",appointment_type_id:"mock_appointment_type_001",appointment_date:DEMO_DATE_1,start_at:demoAt(DEMO_DATE_1,"09:30"),end_at:demoAt(DEMO_DATE_1,"10:00"),available:true},
+  {appointment_slot_id:"mock_slot_003",appointment_type_id:"mock_appointment_type_003",appointment_date:DEMO_DATE_1,start_at:demoAt(DEMO_DATE_1,"10:00"),end_at:demoAt(DEMO_DATE_1,"11:00"),available:true},
+  {appointment_slot_id:"mock_slot_004",appointment_type_id:"mock_appointment_type_001",appointment_date:DEMO_DATE_2,start_at:demoAt(DEMO_DATE_2,"09:30"),end_at:demoAt(DEMO_DATE_2,"10:00"),available:true}
  ],
  appointments:[
-  {appointment_id:"mock_appointment_001",patient_id:"mock_patient_001",appointment_type_id:"mock_appointment_type_001",appointment_slot_id:"mock_slot_001",appointment_date:"2026-08-18",start_at:"2026-08-18T09:00:00+09:00",end_at:"2026-08-18T09:30:00+09:00",booking_mode:"datetime",status:"confirmed",source:"web"},
-  {appointment_id:"mock_appointment_002",patient_id:"mock_patient_001",appointment_type_id:"mock_appointment_type_001",appointment_slot_id:"mock_slot_004",appointment_date:"2026-08-19",start_at:"2026-08-19T09:30:00+09:00",end_at:"2026-08-19T10:00:00+09:00",booking_mode:"datetime",status:"pending",source:"line"}
+  {appointment_id:"mock_appointment_001",patient_id:"mock_patient_001",appointment_type_id:"mock_appointment_type_001",appointment_slot_id:"mock_slot_001",appointment_date:DEMO_DATE_1,start_at:demoAt(DEMO_DATE_1,"09:00"),end_at:demoAt(DEMO_DATE_1,"09:30"),booking_mode:"datetime",status:"confirmed",source:"web"},
+  {appointment_id:"mock_appointment_002",patient_id:"mock_patient_001",appointment_type_id:"mock_appointment_type_001",appointment_slot_id:"mock_slot_004",appointment_date:DEMO_DATE_2,start_at:demoAt(DEMO_DATE_2,"09:30"),end_at:demoAt(DEMO_DATE_2,"10:00"),booking_mode:"datetime",status:"pending",source:"line"}
  ],
  visits:[{visit_id:"mock_visit_001",appointment_id:"mock_appointment_001",patient_id:"mock_patient_001",status:"arrived"}],
  queue_entries:[{queue_id:"mock_queue_001",visit_id:"mock_visit_001",appointment_id:"mock_appointment_001",patient_id:"mock_patient_001",queue_number:23,current_queue_number:18,people_ahead:4,status:"waiting"}],
