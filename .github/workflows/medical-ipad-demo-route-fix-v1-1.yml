@@ -1,0 +1,85 @@
+name: DPRO MEDICAL IPAD DEMO ROUTE FIX V1.1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/medical-ipad-demo-route-fix-v1-1.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix-ipad-demo-route:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add demo route to clinic runtime allowlist
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path("clinic-runtime-config.js")
+          s = p.read_text(encoding="utf-8")
+
+          old = """  const PAGE_POLICY = Object.freeze({
+            'owner.html': Object.freeze({ requiredPermissions: Object.freeze(['system_check.execute']) }),
+            'owner-ipad.html': Object.freeze({ requiredPermissions: Object.freeze(['system_check.execute']) }),
+            'staff.html': Object.freeze({ requiredPermissions: Object.freeze([]) })
+          });"""
+
+          new = """  const PAGE_POLICY = Object.freeze({
+            'owner.html': Object.freeze({ requiredPermissions: Object.freeze(['system_check.execute']) }),
+            'owner-ipad.html': Object.freeze({ requiredPermissions: Object.freeze(['system_check.execute']) }),
+            'owner-ipad-demo.html': Object.freeze({ requiredPermissions: Object.freeze(['system_check.execute']) }),
+            'staff.html': Object.freeze({ requiredPermissions: Object.freeze([]) })
+          });"""
+
+          if old not in s:
+              if "'owner-ipad-demo.html'" in s:
+                  print("Demo route already present.")
+              else:
+                  raise SystemExit("PAGE_POLICY target not found; stop without changing runtime.")
+          else:
+              s = s.replace(old, new, 1)
+              p.write_text(s, encoding="utf-8")
+
+          # Safety checks
+          s = p.read_text(encoding="utf-8")
+          checks = {
+              "demo route exists": "'owner-ipad-demo.html'" in s,
+              "owner route retained": "'owner.html'" in s,
+              "owner ipad route retained": "'owner-ipad.html'" in s,
+              "staff route retained": "'staff.html'" in s,
+              "production mock guard retained": "production guard: mock/mockMode is forbidden in production" in s,
+              "API mode auth retained": "await auth.requireActor('staff'" in s,
+              "mock mode still skips auth": "if (!mockMode)" in s,
+          }
+          for name, ok in checks.items():
+              print(f"[{'PASS' if ok else 'FAIL'}] {name}")
+          if not all(checks.values()):
+              raise SystemExit("Safety QA failed.")
+          print(f"TOTAL: {len(checks)}/{len(checks)} PASS")
+          PY
+
+      - name: JavaScript syntax check
+        run: node --check clinic-runtime-config.js
+
+      - name: Commit and self-remove
+        shell: bash
+        run: |
+          rm -f .github/workflows/medical-ipad-demo-route-fix-v1-1.yml
+          git config user.name "dpro-ready-bot"
+          git config user.email "dpro-ready-bot@users.noreply.github.com"
+          git add -- clinic-runtime-config.js .github/workflows/medical-ipad-demo-route-fix-v1-1.yml
+          if git diff --cached --quiet; then
+            echo "No changes required."
+            exit 0
+          fi
+          git commit -m "MEDICAL allow safe iPad demo route V1.1"
+          git push origin HEAD:main
