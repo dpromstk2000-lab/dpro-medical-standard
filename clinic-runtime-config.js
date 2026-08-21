@@ -13,6 +13,7 @@
   const PAGE_POLICY = Object.freeze({
     'owner.html': Object.freeze({ requiredPermissions: Object.freeze(['system_check.execute']) }),
     'owner-ipad.html': Object.freeze({ requiredPermissions: Object.freeze(['system_check.execute']) }),
+    'owner-ipad-demo.html': Object.freeze({ requiredPermissions: Object.freeze(['system_check.execute']) }),
     'staff.html': Object.freeze({ requiredPermissions: Object.freeze([]) })
   });
 
