@@ -1,0 +1,208 @@
+name: DPRO MEDICAL PRODUCT READY FIX V1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/medical-product-ready-fix-v1.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  ready-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply MEDICAL READY minimal fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          FRONTEND_VERSION = "MEDICAL-READY-V1.0-PAGES-20260820"
+
+          def load(name):
+              p = Path(name)
+              if not p.exists():
+                  raise SystemExit(f"Required file missing: {name}")
+              return p, p.read_text(encoding="utf-8")
+
+          def replace_once(text, old, new, label):
+              if old not in text:
+                  raise SystemExit(f"Replacement target missing: {label}")
+              if text.count(old) != 1:
+                  raise SystemExit(f"Replacement target count is not 1: {label} count={text.count(old)}")
+              return text.replace(old, new, 1)
+
+          # ------------------------------------------------------
+          # 1) Public DEMO: customer-facing wording only
+          # ------------------------------------------------------
+          p, s = load("medical-public-demo.html")
+          s = replace_once(
+              s,
+              '<strong id="apiText">DPRO MEDICAL CORE Worker 接続確認中</strong><small>公開health endpointのみを確認。DEMO操作は架空データで、本番書込みは行いません。</small>',
+              '<strong id="apiText">共通基盤を確認中</strong><small>公開DEMOの接続状態を確認しています。体験操作は架空データのみを使用します。</small>',
+              "public demo health card copy"
+          )
+          s = replace_once(
+              s,
+              'text.textContent="DPRO MEDICAL CORE Worker 公開health応答あり";',
+              'text.textContent="共通基盤：接続確認済み";',
+              "public demo health success copy"
+          )
+          s = replace_once(
+              s,
+              'text.textContent="DPRO MEDICAL CORE Worker：ブラウザから接続確認待ち";',
+              'text.textContent="共通基盤：接続確認待ち";',
+              "public demo health wait copy"
+          )
+          p.write_text(s, encoding="utf-8")
+
+          # ------------------------------------------------------
+          # 2) Frontend version: public config metadata only
+          # ------------------------------------------------------
+          p, s = load("config.js")
+          if 'frontendVersion:' not in s:
+              s = replace_once(
+                  s,
+                  '  integrationVersion: "INTEGRATION-1 STANDARD V1.3",\n',
+                  f'  integrationVersion: "INTEGRATION-1 STANDARD V1.3",\n  frontendVersion: "{FRONTEND_VERSION}",\n',
+                  "frontend version"
+              )
+          elif FRONTEND_VERSION not in s:
+              s = re.sub(
+                  r'(\s*frontendVersion:\s*)"[^"]*"',
+                  rf'\1"{FRONTEND_VERSION}"',
+                  s,
+                  count=1
+              )
+          p.write_text(s, encoding="utf-8")
+
+          # ------------------------------------------------------
+          # 3) Reservation: no past date / no past datetime
+          # ------------------------------------------------------
+          p, s = load("patient-reservation.html")
+          s = replace_once(
+              s,
+              '<input id="appointmentDate" type="date" value="2026-08-18">',
+              '<input id="appointmentDate" type="date">',
+              "remove stale fixed date"
+          )
+
+          marker = 'function source(){return new URLSearchParams(location.search).get("source")==="line"?"line":"web";}'
+          if 'function todayJst()' not in s:
+              s = replace_once(
+                  s,
+                  marker,
+                  marker + '\n'
+                  'function todayJst(){return new Date(Date.now()+9*60*60*1000).toISOString().slice(0,10);}\n'
+                  'function isFutureSlot(slot){const t=Date.parse(slot?.start_at||"");return Number.isFinite(t)&&t>Date.now();}',
+                  "reservation time helpers"
+              )
+
+          old_load = 'async function loadSlots(){clearError();selectedSlot=null;$("#appointmentSlot").innerHTML=\'<option value="読み込み中...">読み込み中...</option>\';'
+          # The current source actually uses value="" for loading option.
+          old_load_actual = 'async function loadSlots(){clearError();selectedSlot=null;$("#appointmentSlot").innerHTML=\'<option value="">読み込み中...</option>\';try{const r=await api.getAppointmentSlots({date:$("#appointmentDate").value,appointment_type_id:$("#appointmentType").value});slots=(r.data||[]).filter(s=>s.available!==false&&s.appointment_slot_id);'
+          new_load_actual = 'async function loadSlots(){clearError();selectedSlot=null;const requestedDate=$("#appointmentDate").value;if(!requestedDate||requestedDate<todayJst()){showError("過去の日付は予約できません。今日以降の日付を選択してください。");$("#appointmentSlot").innerHTML=\'<option value="">選択できません</option>\';return;}$("#appointmentSlot").innerHTML=\'<option value="">読み込み中...</option>\';try{const r=await api.getAppointmentSlots({date:requestedDate,appointment_type_id:$("#appointmentType").value});slots=(r.data||[]).filter(s=>s.available!==false&&s.appointment_slot_id&&isFutureSlot(s));'
+          s = replace_once(s, old_load_actual, new_load_actual, "past date/slot filter")
+
+          old_confirm = 'if(!selectedType||!selectedSlot){showError("予約種別と空き枠を選択してください。");return;}'
+          new_confirm = 'if(!selectedType||!selectedSlot){showError("予約種別と空き枠を選択してください。");return;}if(!isFutureSlot(selectedSlot)){showError("過去の時間は予約できません。空き枠を再取得してください。");return;}'
+          s = replace_once(s, old_confirm, new_confirm, "confirm past time guard")
+
+          old_create = 'if(!selectedType||!selectedSlot){showError("予約内容をもう一度確認してください。");return;}submitting=true;'
+          new_create = 'if(!selectedType||!selectedSlot){showError("予約内容をもう一度確認してください。");return;}if(!isFutureSlot(selectedSlot)){showError("この予約枠はすでに過ぎています。空き枠を再取得してください。");return;}submitting=true;'
+          s = replace_once(s, old_create, new_create, "create past time guard")
+
+          old_boot = 'try{const runtime=await DPRO_MEDICAL_PATIENT_API.prepareRuntime();'
+          new_boot = 'try{const dateInput=$("#appointmentDate");const minDate=todayJst();dateInput.min=minDate;if(!dateInput.value||dateInput.value<minDate)dateInput.value=minDate;const runtime=await DPRO_MEDICAL_PATIENT_API.prepareRuntime();'
+          s = replace_once(s, old_boot, new_boot, "date input initialization")
+          p.write_text(s, encoding="utf-8")
+
+          # ------------------------------------------------------
+          # 4) DEMO mock: keep sample appointment slots in future
+          # ------------------------------------------------------
+          p, s = load("patient-mock-data.js")
+          if 'const DEMO_DATE_1=' not in s:
+              marker = '"use strict";\nconst M={'
+              inject = (
+                  '"use strict";\n'
+                  'const demoDate=(offset)=>new Date(Date.now()+9*60*60*1000+offset*86400000).toISOString().slice(0,10);\n'
+                  'const demoAt=(date,time)=>`${date}T${time}:00+09:00`;\n'
+                  'const DEMO_DATE_1=demoDate(1),DEMO_DATE_2=demoDate(2);\n'
+                  'const M={'
+              )
+              s = replace_once(s, marker, inject, "dynamic demo dates")
+
+          replacements = {
+              'appointment_date:"2026-08-18",start_at:"2026-08-18T09:00:00+09:00",end_at:"2026-08-18T09:30:00+09:00"':
+                  'appointment_date:DEMO_DATE_1,start_at:demoAt(DEMO_DATE_1,"09:00"),end_at:demoAt(DEMO_DATE_1,"09:30")',
+              'appointment_date:"2026-08-18",start_at:"2026-08-18T09:30:00+09:00",end_at:"2026-08-18T10:00:00+09:00"':
+                  'appointment_date:DEMO_DATE_1,start_at:demoAt(DEMO_DATE_1,"09:30"),end_at:demoAt(DEMO_DATE_1,"10:00")',
+              'appointment_date:"2026-08-18",start_at:"2026-08-18T10:00:00+09:00",end_at:"2026-08-18T11:00:00+09:00"':
+                  'appointment_date:DEMO_DATE_1,start_at:demoAt(DEMO_DATE_1,"10:00"),end_at:demoAt(DEMO_DATE_1,"11:00")',
+              'appointment_date:"2026-08-19",start_at:"2026-08-19T09:30:00+09:00",end_at:"2026-08-19T10:00:00+09:00"':
+                  'appointment_date:DEMO_DATE_2,start_at:demoAt(DEMO_DATE_2,"09:30"),end_at:demoAt(DEMO_DATE_2,"10:00")',
+          }
+          for old, new in replacements.items():
+              if old in s:
+                  s = s.replace(old, new)
+          if "2026-08-18T09:" in s or "2026-08-19T09:" in s:
+              raise SystemExit("Stale demo appointment datetime remains")
+          p.write_text(s, encoding="utf-8")
+
+          # ------------------------------------------------------
+          # Static acceptance checks
+          # ------------------------------------------------------
+          demo = Path("medical-public-demo.html").read_text(encoding="utf-8")
+          config = Path("config.js").read_text(encoding="utf-8")
+          reserve = Path("patient-reservation.html").read_text(encoding="utf-8")
+          mock = Path("patient-mock-data.js").read_text(encoding="utf-8")
+
+          checks = {
+              "public CORE Worker wording removed": "DPRO MEDICAL CORE Worker" not in demo,
+              "public health endpoint wording removed": "公開health endpoint" not in demo,
+              "frontend version present": FRONTEND_VERSION in config,
+              "stale fixed reservation date removed": 'value="2026-08-18"' not in reserve,
+              "date min initialized": "dateInput.min=minDate" in reserve,
+              "past date guard present": "requestedDate<todayJst()" in reserve,
+              "past slot filter present": "isFutureSlot(s)" in reserve,
+              "confirm past time guard present": "isFutureSlot(selectedSlot)" in reserve,
+              "demo dates dynamic": "DEMO_DATE_1=demoDate(1)" in mock,
+              "stale mock date absent": "2026-08-18T09:" not in mock and "2026-08-19T09:" not in mock,
+              "medical system identity retained": "DPRO MEDICAL" in demo and "DPRO MEDICAL" in config,
+          }
+          failed=[k for k,v in checks.items() if not v]
+          for k,v in checks.items():
+              print(f"[{'PASS' if v else 'FAIL'}] {k}")
+          if failed:
+              raise SystemExit("QA failed: "+", ".join(failed))
+          print(f"TOTAL: {len(checks)}/{len(checks)} PASS")
+          PY
+
+      - name: JavaScript syntax check
+        shell: bash
+        run: |
+          node --check config.js
+          node --check patient-mock-data.js
+
+      - name: Commit READY fixes and self-remove workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/medical-product-ready-fix-v1.yml
+          git config user.name "dpro-ready-bot"
+          git config user.email "dpro-ready-bot@users.noreply.github.com"
+          git add medical-public-demo.html config.js patient-reservation.html patient-mock-data.js .github/workflows/medical-product-ready-fix-v1.yml
+          if git diff --cached --quiet; then
+            echo "No changes required."
+            exit 0
+          fi
+          git commit -m "MEDICAL PRODUCT READY V1.0 customer copy and reservation guard"
+          git push origin HEAD:main
