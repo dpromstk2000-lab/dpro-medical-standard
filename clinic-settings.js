@@ -1,5 +1,6 @@
 (function(global){
   'use strict';
+  // BRUSHUP-6 LINE CALL / QUEUE PROXIMITY NOTIFICATION V1.0
   // BRUSHUP-5 PUBLIC / HP WAITING DISPLAY V1.0
   const MODE_LABELS={datetime:'日時予約',queue:'順番受付',time_window:'時間帯受付',complete_reservation:'完全予約（案内）',walk_in:'直接来院（予約不要）'};
   const FEATURE_BY_MODE={datetime:'feature_datetime_booking',queue:'feature_queue',time_window:'feature_time_window'};
@@ -49,6 +50,60 @@
     root.appendChild(card);
     $('save-public-waiting-settings')?.addEventListener('click',savePublicWaiting);
   }
+  function ensureLineCallCard(){
+    const root=$('clinic-settings-root'); if(!root||$('line-call-settings-card'))return;
+    const card=document.createElement('div'); card.className='card settings-card'; card.id='line-call-settings-card';
+    card.innerHTML=`<h3>LINE呼出通知</h3>
+      <p class="settings-note">順番が近づいた時と、実際に呼び出した時のLINE通知を設定します。</p>
+      <div class="setting-row"><div class="setting-copy"><strong>LINE呼出通知を利用</strong><span class="muted">医院単位の通知ON/OFF</span></div><label class="switch"><input id="setting-line-call-enabled" type="checkbox"><span></span></label></div>
+      <div class="setting-row"><div class="setting-copy"><strong>順番接近通知</strong><span class="muted">指定した人数以内になった時に1回通知</span></div><label class="switch"><input id="setting-line-proximity-enabled" type="checkbox"><span></span></label></div>
+      <div class="setting-row"><div class="setting-copy"><strong>何人前で通知</strong><span class="muted">1〜10人前</span></div><select id="setting-line-proximity-ahead" class="settings-select">${Array.from({length:10},(_,i)=>`<option value="${i+1}">${i+1}人前</option>`).join('')}</select></div>
+      <div class="setting-row"><div class="setting-copy"><strong>呼出時にも通知</strong><span class="muted">受付番号を呼んだ時に1回通知</span></div><label class="switch"><input id="setting-line-called-enabled" type="checkbox"><span></span></label></div>
+      <div class="settings-actions"><button class="btn primary" id="save-line-call-settings" type="button">LINE呼出通知設定を保存</button><span id="line-call-settings-message" class="settings-message"></span></div>
+      <p class="settings-note" id="line-call-feature-note"></p>
+      <p class="settings-note" id="line-call-runtime-note"></p>
+      <p class="settings-note" id="line-call-link-note"></p>`;
+    root.appendChild(card);
+    $('save-line-call-settings')?.addEventListener('click',saveLineCall);
+  }
+  function renderLineCallStatus(){
+    ensureLineCallCard();
+    const lc=context?.line_call||context?.lineCall||{};
+    const s=lc.settings||{};
+    $('setting-line-call-enabled').checked=s.enabled??false;
+    $('setting-line-proximity-enabled').checked=s.proximity_enabled??s.proximityEnabled??true;
+    $('setting-line-proximity-ahead').value=String(Number(s.proximity_ahead??s.proximityAhead??3));
+    $('setting-line-called-enabled').checked=s.called_enabled??s.calledEnabled??true;
+    const featureOn=context?.features?.feature_line_call===true;
+    const runtimeReady=lc.runtime_configured===true||lc.runtimeConfigured===true;
+    const linkReady=lc.verified_link_available===true||lc.verifiedLinkAvailable===true;
+    ['setting-line-call-enabled','setting-line-proximity-enabled','setting-line-proximity-ahead','setting-line-called-enabled','save-line-call-settings'].forEach(id=>{
+      const el=$(id); if(el) el.disabled=!featureOn;
+    });
+    if($('line-call-feature-note')) $('line-call-feature-note').textContent=featureOn?'feature_line_call：ON':'feature_line_call：OFF（外部LINE接続前は安全のためHOLD）';
+    if($('line-call-runtime-note')) $('line-call-runtime-note').textContent=runtimeReady?'LINE Messaging API：接続設定あり':'LINE Messaging API：未接続（Cloudflare Secret設定が必要）';
+    if($('line-call-link-note')) $('line-call-link-note').textContent=linkReady?'LINE患者紐付け：確認済み':'LINE患者紐付け：まだありません';
+  }
+  async function saveLineCall(){
+    const btn=$('save-line-call-settings'); if(!btn)return;
+    btn.disabled=true;message('line-call-settings-message','保存中...','');
+    const payload={
+      enabled:$('setting-line-call-enabled').checked,
+      proximity_enabled:$('setting-line-proximity-enabled').checked,
+      proximity_ahead:Number($('setting-line-proximity-ahead').value),
+      called_enabled:$('setting-line-called-enabled').checked
+    };
+    try{
+      const data=await request('/api/medical/v1/clinic-settings/line-call',{method:'PATCH',body:JSON.stringify(payload)});
+      if(context) context.line_call=data.line_call||context.line_call;
+      message('line-call-settings-message','保存しました。次回の順番更新から反映されます。','ok');
+      renderLineCallStatus();
+    }catch(e){
+      message('line-call-settings-message','保存できませんでした。 '+e.message,'err');
+      btn.disabled=context?.features?.feature_line_call!==true;
+    }
+  }
+
   async function load(){
     busy(true);setBanner('設定を読み込んでいます。');
     try{
@@ -68,7 +123,7 @@
       const hpEnabled=context?.features?.feature_hp_waiting===true;
       ['setting-hp-show-waiting','setting-hp-show-current','setting-hp-refresh-seconds','save-public-waiting-settings'].forEach(id=>{const el=$(id);if(el)el.disabled=!hpEnabled;});
       if($('public-waiting-feature-note')) $('public-waiting-feature-note').textContent=hpEnabled?'feature_hp_waiting：ON':'feature_hp_waiting がOFFのため変更できません。';
-      renderBooking();setBanner('現在の設定を読み込みました。','ok');
+      renderBooking();renderLineCallStatus();setBanner('現在の設定を読み込みました。','ok');
     }catch(e){setBanner('設定を読み込めませんでした。 '+e.message,'err');}
     finally{busy(false);}
   }
