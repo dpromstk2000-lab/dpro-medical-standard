@@ -1,7 +1,139 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>待ち状況 | DPRO MEDICAL</title><script src="config.js"></script><script src="auth-supabase-auth-client.js"></script><script src="patient-runtime-config.js"></script><script src="patient-api-adapter.js"></script><style>
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>待ち状況 | DPRO MEDICAL</title>
+<script src="config.js"></script>
+<script src="auth-supabase-auth-client.js"></script>
+<script src="patient-runtime-config.js"></script>
+<script src="patient-api-adapter.js"></script>
+<style>
 :root{--bg:#f5f8fb;--card:#fff;--ink:#17324a;--muted:#637587;--line:#d9e4ec;--accent:#1769aa;--soft:#eaf4fb;--warn:#fff7e7;--ok:#edf8f1;--danger:#a92f2f;--dangerbg:#fff1f1}
-*{box-sizing:border-box}html{font-size:16px;-webkit-text-size-adjust:100%}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}.wrap{width:100%;max-width:540px;margin:0 auto;padding:16px 16px 40px}.header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.clinic{font-size:18px;font-weight:850}.user{font-size:14px;color:var(--muted)}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 4px 14px rgba(22,50,75,.05)}.status{background:var(--soft)}.warn{background:var(--warn)}.ok{background:var(--ok)}.error{background:var(--dangerbg);border-color:#e9bbbb;color:#7e2222}h1{font-size:23px;line-height:1.35;margin:0 0 8px}h2{font-size:18px;margin:0 0 10px}h3{font-size:16px;margin:0 0 8px}p{line-height:1.65;margin:8px 0}.small{font-size:13px;color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{display:flex;align-items:center;justify-content:center;min-height:52px;padding:12px 10px;border-radius:14px;border:1px solid var(--line);background:#fff;color:var(--ink);text-decoration:none;font-weight:760;text-align:center;cursor:pointer;font-size:15px}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn.danger{background:#fff;color:var(--danger);border-color:#e5bcbc}.btn.wide{grid-column:1/-1;width:100%}.btn:disabled{opacity:.45;cursor:not-allowed}.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:12px;font-weight:760}.big-number{font-size:42px;font-weight:900;line-height:1}label{display:block;font-weight:760;margin:14px 0 6px}input,select,textarea{width:100%;min-height:48px;padding:12px 13px;border-radius:12px;border:1px solid #c8d7e2;background:#fff;font:inherit;color:var(--ink)}input[type=checkbox],input[type=radio]{width:auto;min-height:auto}.checkrow{display:flex;align-items:flex-start;gap:8px;margin:9px 0}.checkrow label{margin:0;font-weight:500}.options{display:grid;gap:8px}.options .checkrow{padding:8px 10px;border:1px solid var(--line);border-radius:10px}.field-error{font-size:13px;color:#982d2d;margin-top:5px}textarea{min-height:108px;resize:vertical}nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}nav a{color:var(--accent);font-size:14px;text-decoration:none;font-weight:700}.note{padding:11px 12px;border-radius:12px;background:#fff8e8;font-size:13px;line-height:1.55}hr{border:0;border-top:1px solid var(--line);margin:16px 0}.list{display:grid;gap:10px}.list-item{border:1px solid var(--line);border-radius:14px;padding:13px;background:#fff}.meta{display:grid;grid-template-columns:130px 1fr;gap:7px 10px;font-size:14px}.meta div:nth-child(odd){color:var(--muted)}.hidden{display:none!important}.mutedbox{padding:18px;border:1px dashed #b9c9d5;border-radius:14px;text-align:center;color:var(--muted);background:#fbfdff}.success-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}.spinner{opacity:.65}.nowrap{white-space:nowrap}
-@media(max-width:430px){.wrap{padding-left:14px;padding-right:14px}.meta{grid-template-columns:115px 1fr}.btn{min-height:50px}}
-@media(max-width:390px){.grid{grid-template-columns:1fr}.btn.wide{grid-column:auto}.meta{grid-template-columns:1fr}.meta div:nth-child(odd){font-size:12px;margin-top:4px}}
-@media(max-width:360px){.wrap{padding-left:11px;padding-right:11px}h1{font-size:21px}.card{padding:14px}.btn{font-size:14px}}
-</style></head><body><main class="wrap"><nav><a href="member.html">← 患者TOP</a></nav><div id="errorBox" class="card error hidden"></div><div class="card"><h1>待ち状況</h1><div class="grid"><div class="card"><p class="small">現在番号</p><div class="big-number" id="current">-</div></div><div class="card"><p class="small">自分の番号</p><div class="big-number" id="mine">-</div></div></div><div class="card status"><h2 id="ahead">あと-人</h2><p id="queueMessage"></p></div></div><script>(async()=>{const $=id=>document.getElementById(id);try{const runtime=await DPRO_MEDICAL_PATIENT_API.prepareRuntime();const api=DPRO_MEDICAL_PATIENT_API.createPatientApiAdapter(runtime);const r=await api.getWaitStatus(),q=r.data.queue||r.data;$("current").textContent=q.current_queue_number??"-";$("mine").textContent=q.queue_number??"-";$("ahead").textContent=`あと${q.people_ahead??"-"}人`;$("queueMessage").textContent=DPRO_MEDICAL_PATIENT_API.getStatusLabel(q.status);}catch(e){$("errorBox").textContent="待ち状況を取得できませんでした。もう一度お試しください。";$("errorBox").classList.remove("hidden");}})();</script></main></body></html>
+*{box-sizing:border-box}html{font-size:16px;-webkit-text-size-adjust:100%}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}.wrap{width:100%;max-width:540px;margin:0 auto;padding:16px 16px 40px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 4px 14px rgba(22,50,75,.05)}.status{background:var(--soft)}.error{background:var(--dangerbg);border-color:#e9bbbb;color:#7e2222}h1{font-size:23px;line-height:1.35;margin:0}h2{font-size:18px;margin:0 0 8px}p{line-height:1.65;margin:7px 0}.small{font-size:13px;color:var(--muted)}nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}nav a{color:var(--accent);font-size:14px;text-decoration:none;font-weight:700}.hidden{display:none!important}.wait-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.wait-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.number-card{margin:0;min-width:0}.big-number{font-size:42px;font-weight:900;line-height:1}.ahead-card{margin-top:12px}.refresh-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}.refresh-info{font-size:12px;color:var(--muted);line-height:1.5}.btn{display:flex;align-items:center;justify-content:center;min-height:44px;padding:9px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-size:13px;font-weight:760;cursor:pointer}.btn:disabled{opacity:.55;cursor:not-allowed}.updating{opacity:.7}.empty{padding:14px;border:1px dashed #b9c9d5;border-radius:12px;background:#fbfdff;color:var(--muted)}
+@media(max-width:430px){.wrap{padding-left:14px;padding-right:14px}.card{padding:15px}.big-number{font-size:38px}}
+@media(max-width:390px){.wait-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.number-card{padding:14px}.big-number{font-size:36px}.refresh-row{align-items:flex-start;flex-direction:column}.btn{width:100%}}
+@media(max-width:340px){.wait-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<nav><a href="member.html">← 患者TOP</a></nav>
+<div id="errorBox" class="card error hidden" role="alert"></div>
+<div class="card" id="waitCard">
+  <div class="wait-head">
+    <div><h1>待ち状況</h1><p class="small">受付後の順番を自動で更新します。</p></div>
+  </div>
+  <div id="emptyBox" class="empty hidden">本日の受付情報はありません。</div>
+  <div id="waitContent">
+    <div class="wait-grid" id="waitGrid">
+      <div class="card number-card" id="currentCard"><p class="small">現在番号</p><div class="big-number" id="current">-</div></div>
+      <div class="card number-card" id="mineCard"><p class="small">自分の番号</p><div class="big-number" id="mine">-</div></div>
+    </div>
+    <div class="card status ahead-card" id="aheadCard"><h2 id="ahead">あと-人</h2><p id="queueMessage"></p></div>
+  </div>
+  <div class="refresh-row">
+    <div class="refresh-info"><div id="refreshInfo">自動更新を準備しています。</div><div id="updatedAt"></div></div>
+    <button id="refreshBtn" class="btn" type="button">今すぐ更新</button>
+  </div>
+</div>
+<script>
+(async()=>{
+  const $=id=>document.getElementById(id);
+  let api=null,timer=null,loading=false,refreshSeconds=30;
+  const defaults={show_current_number:true,show_my_number:true,show_people_ahead:true,refresh_seconds:30};
+  function safeSettings(ctx){
+    const w=ctx?.patient_ui?.waiting||{};
+    const n=Number(w.refresh_seconds);
+    return {
+      show_current_number:typeof w.show_current_number==="boolean"?w.show_current_number:defaults.show_current_number,
+      show_my_number:typeof w.show_my_number==="boolean"?w.show_my_number:defaults.show_my_number,
+      show_people_ahead:typeof w.show_people_ahead==="boolean"?w.show_people_ahead:defaults.show_people_ahead,
+      refresh_seconds:Number.isInteger(n)&&n>=15&&n<=300?n:defaults.refresh_seconds
+    };
+  }
+  function applyVisibility(settings){
+    $("currentCard").classList.toggle("hidden",!settings.show_current_number);
+    $("mineCard").classList.toggle("hidden",!settings.show_my_number);
+    $("aheadCard").classList.toggle("hidden",!settings.show_people_ahead);
+    const visible=settings.show_current_number||settings.show_my_number||settings.show_people_ahead;
+    $("waitContent").classList.toggle("hidden",!visible);
+  }
+  function setError(message,keepData=false){
+    $("errorBox").textContent=message;
+    $("errorBox").classList.remove("hidden");
+    if(!keepData) $("waitContent").classList.add("updating");
+  }
+  function clearError(){ $("errorBox").classList.add("hidden"); $("errorBox").textContent=""; }
+  function fmtTime(value){
+    const d=value?new Date(value):new Date();
+    return Number.isNaN(d.getTime())?"":d.toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  }
+  function schedule(){
+    if(timer) clearTimeout(timer);
+    if(document.hidden) return;
+    timer=setTimeout(async()=>{ await loadStatus(false); schedule(); },refreshSeconds*1000);
+  }
+  function render(data){
+    const q=data?.queue||null;
+    const summary=data?.wait_summary||{};
+    const current=summary.current_queue_number??data?.current_queue_number??q?.current_queue_number??null;
+    const mine=summary.my_queue_number??q?.queue_number??null;
+    const ahead=summary.people_ahead??data?.people_ahead??q?.people_ahead??null;
+    const status=summary.queue_status??q?.status??null;
+    const hasQueue=Boolean(q||mine!==null);
+    $("emptyBox").classList.toggle("hidden",hasQueue);
+    $("waitContent").classList.toggle("hidden",!hasQueue);
+    if(!hasQueue){
+      $("updatedAt").textContent=`最終確認 ${fmtTime(summary.updated_at)||fmtTime()}`;
+      return;
+    }
+    $("current").textContent=current??"-";
+    $("mine").textContent=mine??"-";
+    $("ahead").textContent=ahead===null?"あと-人":`あと${ahead}人`;
+    $("queueMessage").textContent=DPRO_MEDICAL_PATIENT_API.getStatusLabel(status);
+    $("updatedAt").textContent=`最終更新 ${fmtTime(summary.updated_at)||fmtTime()}`;
+  }
+  async function loadStatus(initial=false){
+    if(loading) return;
+    loading=true;
+    $("refreshBtn").disabled=true;
+    $("refreshBtn").textContent="更新中...";
+    $("waitCard").classList.add("updating");
+    try{
+      const r=await api.getWaitStatus();
+      clearError();
+      render(r.data||{});
+    }catch(e){
+      setError(initial?"待ち状況を取得できませんでした。もう一度お試しください。":"更新に失敗しました。前回の表示を残しています。",!initial);
+    }finally{
+      loading=false;
+      $("refreshBtn").disabled=false;
+      $("refreshBtn").textContent="今すぐ更新";
+      $("waitCard").classList.remove("updating");
+    }
+  }
+  try{
+    const runtime=await DPRO_MEDICAL_PATIENT_API.prepareRuntime();
+    api=DPRO_MEDICAL_PATIENT_API.createPatientApiAdapter(runtime);
+    const ctx=(await api.getContext()).data||{};
+    const settings=safeSettings(ctx);
+    refreshSeconds=settings.refresh_seconds;
+    applyVisibility(settings);
+    $("refreshInfo").textContent=`${refreshSeconds}秒ごとに自動更新`;
+    $("refreshBtn").addEventListener("click",async()=>{await loadStatus(false);schedule();});
+    document.addEventListener("visibilitychange",()=>{
+      if(document.hidden){ if(timer) clearTimeout(timer); }
+      else { loadStatus(false).finally(schedule); }
+    });
+    await loadStatus(true);
+    schedule();
+  }catch(e){
+    setError("待ち状況画面を準備できませんでした。もう一度お試しください。");
+    $("refreshBtn").disabled=true;
+  }
+})();
+</script>
+</main>
+</body>
+</html>

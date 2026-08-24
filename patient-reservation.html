@@ -1,34 +1,131 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>予約 | DPRO MEDICAL</title><script src="config.js"></script><script src="auth-supabase-auth-client.js"></script><script src="patient-runtime-config.js"></script><script src="patient-api-adapter.js"></script><style>
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>予約 | DPRO MEDICAL</title>
+<script src="config.js"></script>
+<script src="auth-supabase-auth-client.js"></script>
+<script src="patient-runtime-config.js"></script>
+<script src="patient-api-adapter.js"></script>
+<style>
 :root{--bg:#f5f8fb;--card:#fff;--ink:#17324a;--muted:#637587;--line:#d9e4ec;--accent:#1769aa;--soft:#eaf4fb;--warn:#fff7e7;--ok:#edf8f1;--danger:#a92f2f;--dangerbg:#fff1f1}
-*{box-sizing:border-box}html{font-size:16px;-webkit-text-size-adjust:100%}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}.wrap{width:100%;max-width:540px;margin:0 auto;padding:16px 16px 40px}.header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.clinic{font-size:18px;font-weight:850}.user{font-size:14px;color:var(--muted)}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 4px 14px rgba(22,50,75,.05)}.status{background:var(--soft)}.warn{background:var(--warn)}.ok{background:var(--ok)}.error{background:var(--dangerbg);border-color:#e9bbbb;color:#7e2222}h1{font-size:23px;line-height:1.35;margin:0 0 8px}h2{font-size:18px;margin:0 0 10px}h3{font-size:16px;margin:0 0 8px}p{line-height:1.65;margin:8px 0}.small{font-size:13px;color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{display:flex;align-items:center;justify-content:center;min-height:52px;padding:12px 10px;border-radius:14px;border:1px solid var(--line);background:#fff;color:var(--ink);text-decoration:none;font-weight:760;text-align:center;cursor:pointer;font-size:15px}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn.danger{background:#fff;color:var(--danger);border-color:#e5bcbc}.btn.wide{grid-column:1/-1;width:100%}.btn:disabled{opacity:.45;cursor:not-allowed}.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:12px;font-weight:760}.big-number{font-size:42px;font-weight:900;line-height:1}label{display:block;font-weight:760;margin:14px 0 6px}input,select,textarea{width:100%;min-height:48px;padding:12px 13px;border-radius:12px;border:1px solid #c8d7e2;background:#fff;font:inherit;color:var(--ink)}input[type=checkbox],input[type=radio]{width:auto;min-height:auto}.checkrow{display:flex;align-items:flex-start;gap:8px;margin:9px 0}.checkrow label{margin:0;font-weight:500}.options{display:grid;gap:8px}.options .checkrow{padding:8px 10px;border:1px solid var(--line);border-radius:10px}.field-error{font-size:13px;color:#982d2d;margin-top:5px}textarea{min-height:108px;resize:vertical}nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}nav a{color:var(--accent);font-size:14px;text-decoration:none;font-weight:700}.note{padding:11px 12px;border-radius:12px;background:#fff8e8;font-size:13px;line-height:1.55}hr{border:0;border-top:1px solid var(--line);margin:16px 0}.list{display:grid;gap:10px}.list-item{border:1px solid var(--line);border-radius:14px;padding:13px;background:#fff}.meta{display:grid;grid-template-columns:130px 1fr;gap:7px 10px;font-size:14px}.meta div:nth-child(odd){color:var(--muted)}.hidden{display:none!important}.mutedbox{padding:18px;border:1px dashed #b9c9d5;border-radius:14px;text-align:center;color:var(--muted);background:#fbfdff}.success-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}.spinner{opacity:.65}.nowrap{white-space:nowrap}
+*{box-sizing:border-box}html{font-size:16px;-webkit-text-size-adjust:100%}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}.wrap{width:100%;max-width:540px;margin:0 auto;padding:16px 16px 40px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 4px 14px rgba(22,50,75,.05)}.status{background:var(--soft)}.warn{background:var(--warn)}.ok{background:var(--ok)}.error{background:var(--dangerbg);border-color:#e9bbbb;color:#7e2222}h1{font-size:23px;line-height:1.35;margin:0 0 8px}h2{font-size:18px;margin:0 0 10px}p{line-height:1.65;margin:8px 0}.small{font-size:13px;color:var(--muted)}.btn{display:flex;align-items:center;justify-content:center;min-height:52px;padding:12px 10px;border-radius:14px;border:1px solid var(--line);background:#fff;color:var(--ink);text-decoration:none;font-weight:760;text-align:center;cursor:pointer;font-size:15px}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn.wide{width:100%}.btn:disabled{opacity:.45;cursor:not-allowed}label{display:block;font-weight:760;margin:14px 0 6px}input,select{width:100%;min-height:48px;padding:12px 13px;border-radius:12px;border:1px solid #c8d7e2;background:#fff;font:inherit;color:var(--ink)}nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}nav a{color:var(--accent);font-size:14px;text-decoration:none;font-weight:700}.hidden{display:none!important}hr{border:0;border-top:1px solid var(--line);margin:16px 0}.meta{display:grid;grid-template-columns:130px 1fr;gap:7px 10px;font-size:14px}.meta div:nth-child(odd){color:var(--muted)}.mode-guide{margin-top:10px;padding:12px 13px;border:1px solid var(--line);border-radius:14px;background:#fbfdff}.mode-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.mode-badge{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:var(--soft);border:1px solid #c8deed;font-size:12px;font-weight:800}.mode-title{font-weight:800}.time-window-guide{background:#f2f7ff;border-color:#bfd5ec}.queue-guide{background:var(--soft)}
 @media(max-width:430px){.wrap{padding-left:14px;padding-right:14px}.meta{grid-template-columns:115px 1fr}.btn{min-height:50px}}
-@media(max-width:390px){.grid{grid-template-columns:1fr}.btn.wide{grid-column:auto}.meta{grid-template-columns:1fr}.meta div:nth-child(odd){font-size:12px;margin-top:4px}}
+@media(max-width:390px){.meta{grid-template-columns:1fr}.meta div:nth-child(odd){font-size:12px;margin-top:4px}.mode-guide{padding:11px}.card{padding:15px}}
 @media(max-width:360px){.wrap{padding-left:11px;padding-right:11px}h1{font-size:21px}.card{padding:14px}.btn{font-size:14px}}
-</style></head><body><main class="wrap"><nav><a href="member.html">← 患者TOP</a></nav>
-<div id="errorBox" class="card error hidden" role="alert"></div><div id="offBox" class="card warn hidden"><h1>予約</h1><p>この医院では現在、予約機能を利用できません。</p></div>
-<div id="bookingCard" class="card"><h1>予約する</h1><p class="small">予約種別と空いている日時を選んで予約します。</p>
-<label for="appointmentType">予約種別</label><select id="appointmentType"><option>読み込み中...</option></select><p class="small" id="modeInfo"></p>
-<div id="slotBooking"><label for="appointmentDate">希望日</label><input id="appointmentDate" type="date"><button id="loadSlotsBtn" class="btn wide" type="button">空き枠を表示</button><label for="appointmentSlot">空き枠</label><select id="appointmentSlot"><option value="">先に空き枠を表示してください</option></select></div>
-<div id="queueRoute" class="card status hidden"><strong>順番受付</strong><p>順番受付は「当日受付」から行ってください。</p><a class="btn primary wide" href="patient-reception.html">当日受付へ</a></div>
-<div id="unsupportedRoute" class="card warn hidden"><strong>この予約方式はこの画面では受付していません。</strong><p>医院の案内に従ってください。</p></div>
-<hr><button id="confirmBtn" class="btn primary wide" type="button">予約内容を確認</button></div>
-<div id="confirm" class="card status hidden"><h2>予約確認</h2><div class="meta"><div>予約種別</div><div id="confirmType"></div><div>日時</div><div id="confirmDateTime"></div></div><div id="confirmMode" class="hidden"></div><div id="confirmSlot" class="hidden"></div><button id="createBtn" class="btn primary wide" type="button">予約を確定</button></div>
+</style>
+</head>
+<body>
+<main class="wrap">
+<nav><a href="member.html">← 患者TOP</a></nav>
+<div id="errorBox" class="card error hidden" role="alert"></div>
+<div id="offBox" class="card warn hidden"><h1>予約</h1><p>この医院では現在、予約機能を利用できません。</p></div>
+<div id="bookingCard" class="card">
+  <h1>予約する</h1><p class="small">予約種別を選ぶと、受付方法が自動で切り替わります。</p>
+  <label for="appointmentType">予約種別</label>
+  <select id="appointmentType"><option>読み込み中...</option></select>
+  <div id="modeGuide" class="mode-guide hidden"><div class="mode-head"><span class="mode-badge" id="modeBadge"></span><span class="mode-title" id="modeTitle"></span></div><p class="small" id="modeInfo"></p></div>
+  <div id="slotBooking">
+    <label for="appointmentDate">希望日</label><input id="appointmentDate" type="date">
+    <button id="loadSlotsBtn" class="btn wide" type="button">空き時間を表示</button>
+    <label for="appointmentSlot" id="slotLabel">空き時間</label>
+    <select id="appointmentSlot"><option value="">先に空き時間を表示してください</option></select>
+  </div>
+  <div id="queueRoute" class="card status hidden"><strong>順番受付</strong><p>当日の診察順を受付します。現在の待ち状況も確認できます。</p><a class="btn primary wide" href="patient-reception.html">当日受付へ</a></div>
+  <div id="unsupportedRoute" class="card warn hidden"><strong>この予約方式はこの画面では受付していません。</strong><p>医院の案内に従ってください。</p></div>
+  <hr><button id="confirmBtn" class="btn primary wide" type="button">予約内容を確認</button>
+</div>
+<div id="confirm" class="card status hidden"><h2>予約確認</h2><div class="meta"><div>予約種別</div><div id="confirmType"></div><div id="confirmTimeLabel">日時</div><div id="confirmDateTime"></div></div><div id="confirmMode" class="hidden"></div><div id="confirmSlot" class="hidden"></div><button id="createBtn" class="btn primary wide" type="button">予約を確定</button></div>
 <div id="success" class="card ok hidden"><h2>予約を受け付けました</h2><p>予約内容は「予約詳細」から確認できます。</p><div id="createdId" class="hidden"></div><div id="createdStatus" class="hidden"></div><a id="detailLink" class="btn wide" href="patient-reservation-detail.html">予約詳細を見る</a></div>
 <script>
 (async()=>{
-let api,types=[],slots=[],selectedType=null,selectedSlot=null,submitting=false;const $=id=>document.getElementById(id);
-function showError(message){$("errorBox").textContent=message;$("errorBox").classList.remove("hidden");}
-function clearError(){$("errorBox").classList.add("hidden");$("errorBox").textContent="";}
-function source(){return new URLSearchParams(location.search).get("source")==="line"?"line":"web";}
-function todayJst(){return new Date(Date.now()+9*60*60*1000).toISOString().slice(0,10);}
-function tomorrowJst(){return new Date(Date.now()+9*60*60*1000+86400000).toISOString().slice(0,10);}
-function isFutureSlot(slot){const t=Date.parse(slot?.start_at||"");return Number.isFinite(t)&&t>Date.now();}
-function featureAllows(type,features){const m=type.booking_mode;if(m==="datetime")return features.feature_datetime_booking===true;if(m==="time_window")return features.feature_time_window===true;if(m==="queue")return features.feature_queue===true;return true;}
-function renderMode(){selectedType=types.find(t=>t.appointment_type_id===$("appointmentType").value)||null;const m=selectedType?.booking_mode||"";$("modeInfo").textContent=m==="queue"?"当日受付をご利用ください。":"";$("slotBooking").classList.toggle("hidden",!["datetime","time_window"].includes(m));$("queueRoute").classList.toggle("hidden",m!=="queue");$("unsupportedRoute").classList.toggle("hidden",!["complete_reservation","walk_in"].includes(m));$("confirmBtn").disabled=!["datetime","time_window"].includes(m);$("confirm").classList.add("hidden");selectedSlot=null;}
-async function loadSlots(){clearError();selectedSlot=null;const requestedDate=$("appointmentDate").value;if(!requestedDate||requestedDate<todayJst()){showError("過去の日付は予約できません。今日以降の日付を選択してください。");$("appointmentSlot").innerHTML='<option value="">選択できません</option>';return;}$("appointmentSlot").innerHTML='<option value="">読み込み中...</option>';try{const r=await api.getAppointmentSlots({date:requestedDate,appointment_type_id:$("appointmentType").value});slots=(r.data||[]).filter(s=>s.available!==false&&s.appointment_slot_id&&isFutureSlot(s));$("appointmentSlot").innerHTML='<option value="">選択してください</option>'+slots.map(s=>`<option value="${s.appointment_slot_id}">${new Date(s.start_at).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}〜${new Date(s.end_at).toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"})}</option>`).join("");if(!slots.length)showError("選択できる予約枠がありません。");}catch(e){showError("予約枠を取得できませんでした。もう一度お試しください。",e.code);$("appointmentSlot").innerHTML='<option value="">取得失敗</option>';}}
-function showConfirm(){clearError();selectedType=types.find(t=>t.appointment_type_id===$("appointmentType").value)||null;selectedSlot=slots.find(s=>s.appointment_slot_id===$("appointmentSlot").value)||null;if(!selectedType||!selectedSlot){showError("予約種別と空き枠を選択してください。");return;}if(!isFutureSlot(selectedSlot)){showError("過去の時間は予約できません。空き枠を再取得してください。");return;}$("confirmType").textContent=selectedType.name||selectedType.appointment_type_name||selectedType.appointment_type_id;$("confirmMode").textContent=selectedType.booking_mode;$("confirmDateTime").textContent=`${selectedSlot.start_at} 〜 ${selectedSlot.end_at}`;$("confirmSlot").textContent=selectedSlot.appointment_slot_id;$("confirm").classList.remove("hidden");$("confirm").scrollIntoView({behavior:"smooth",block:"start"});}
-async function create(){if(submitting)return;clearError();if(!selectedType||!selectedSlot){showError("予約内容をもう一度確認してください。");return;}if(!isFutureSlot(selectedSlot)){showError("この予約枠はすでに過ぎています。空き枠を再取得してください。");return;}submitting=true;$("createBtn").disabled=true;$("createBtn").textContent="処理中...";try{const r=await api.createAppointment({appointment_type_id:selectedType.appointment_type_id,appointment_slot_id:selectedSlot.appointment_slot_id,appointment_date:selectedSlot.appointment_date||$("appointmentDate").value,start_at:selectedSlot.start_at,end_at:selectedSlot.end_at,source:source()});const a=r.data||{};$("createdId").textContent=a.appointment_id||"-";$("createdStatus").textContent=DPRO_MEDICAL_PATIENT_API.getStatusLabel(a.status);$("detailLink").href=`patient-reservation-detail.html?appointment_id=${encodeURIComponent(a.appointment_id||"")}`;$("success").classList.remove("hidden");$("confirm").classList.add("hidden");$("bookingCard").classList.add("hidden");}catch(e){showError("予約処理に失敗しました。もう一度お試しください。",e.code);}finally{submitting=false;$("createBtn").disabled=false;$("createBtn").textContent="予約を確定";}}
-window.showConfirm=showConfirm;
-try{const dateInput=$("appointmentDate");const minDate=todayJst();dateInput.min=minDate;if(!dateInput.value||dateInput.value<minDate)dateInput.value=minDate;const runtime=await DPRO_MEDICAL_PATIENT_API.prepareRuntime();if(runtime==="demo_mock")dateInput.value=tomorrowJst();api=DPRO_MEDICAL_PATIENT_API.createPatientApiAdapter(runtime);const ctx=(await api.getContext()).data,f=ctx.features||(runtime==="demo_mock"?window.DPRO_MEDICAL_PATIENT_MOCK.feature_flags:{});if(!(f.feature_web_booking||f.feature_line_booking)){$("bookingCard").classList.add("hidden");$("offBox").classList.remove("hidden");return;}types=(await api.getAppointmentTypes()).data||[];types=types.filter(t=>featureAllows(t,f));$("appointmentType").innerHTML=types.map(t=>`<option value="${t.appointment_type_id}">${t.name||t.appointment_type_name||t.appointment_type_id}</option>`).join("");if(!types.length){$("bookingCard").classList.add("hidden");$("offBox").classList.remove("hidden");return;}renderMode();$("appointmentType").addEventListener("change",renderMode);$("appointmentDate").addEventListener("change",()=>{slots=[];$("appointmentSlot").innerHTML='<option value="">空き枠を再取得してください</option>';$("confirm").classList.add("hidden");});$("loadSlotsBtn").addEventListener("click",loadSlots);$("appointmentSlot").addEventListener("change",()=>{selectedSlot=slots.find(s=>s.appointment_slot_id===$("appointmentSlot").value)||null;});$("confirmBtn").addEventListener("click",showConfirm);$("createBtn").addEventListener("click",create);}catch(e){showError("予約画面を準備できませんでした。もう一度お試しください。",e.code);$("confirmBtn").disabled=true;}
+  let api,types=[],slots=[],selectedType=null,selectedSlot=null,submitting=false;const $=id=>document.getElementById(id);
+  function showError(message){$("errorBox").textContent=message;$("errorBox").classList.remove("hidden");}
+  function clearError(){$("errorBox").classList.add("hidden");$("errorBox").textContent="";}
+  function source(){return new URLSearchParams(location.search).get("source")==="line"?"line":"web";}
+  function todayJst(){return new Date(Date.now()+9*60*60*1000).toISOString().slice(0,10);}
+  function tomorrowJst(){return new Date(Date.now()+9*60*60*1000+86400000).toISOString().slice(0,10);}
+  function isFutureSlot(slot){const t=Date.parse(slot?.start_at||"");return Number.isFinite(t)&&t>Date.now();}
+  function featureAllows(type,features){const m=type.booking_mode;if(m==="datetime")return features.feature_datetime_booking===true;if(m==="time_window")return features.feature_time_window===true;if(m==="queue")return features.feature_queue===true;return true;}
+  function formatDateTime(v,opts){const d=new Date(v);return Number.isNaN(d.getTime())?"":d.toLocaleString("ja-JP",opts);}
+  function slotLabel(slot,mode){
+    if(mode==="time_window"){
+      const day=formatDateTime(slot.start_at,{month:"numeric",day:"numeric"});
+      const start=formatDateTime(slot.start_at,{hour:"2-digit",minute:"2-digit"});
+      const end=formatDateTime(slot.end_at,{hour:"2-digit",minute:"2-digit"});
+      return `${day} ${start}〜${end} の時間帯`;
+    }
+    return formatDateTime(slot.start_at,{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
+  }
+  function renderMode(){
+    selectedType=types.find(t=>t.appointment_type_id===$("appointmentType").value)||null;
+    const m=selectedType?.booking_mode||"";
+    const guides={
+      datetime:{badge:"日時予約",title:"日時を指定して予約",info:"空いている日時から、来院する時間を選びます。"},
+      queue:{badge:"順番受付",title:"当日の順番を受付",info:"日時指定ではなく、当日の診察順を受付します。"},
+      time_window:{badge:"時間帯受付",title:"時間帯を選んで受付",info:"例：10:00〜11:00のような受付時間帯から選びます。"},
+      complete_reservation:{badge:"完全予約",title:"医院指定の予約方法",info:"医院の案内に従ってください。"},
+      walk_in:{badge:"直接来院",title:"予約不要",info:"医院の案内に従ってください。"}
+    };
+    const g=guides[m]||null;
+    $("modeGuide").classList.toggle("hidden",!g);
+    $("modeGuide").classList.toggle("time-window-guide",m==="time_window");
+    $("modeGuide").classList.toggle("queue-guide",m==="queue");
+    $("modeBadge").textContent=g?.badge||"";$("modeTitle").textContent=g?.title||"";$("modeInfo").textContent=g?.info||"";
+    $("slotBooking").classList.toggle("hidden",!["datetime","time_window"].includes(m));
+    $("queueRoute").classList.toggle("hidden",m!=="queue");
+    $("unsupportedRoute").classList.toggle("hidden",!["complete_reservation","walk_in"].includes(m));
+    $("confirmBtn").disabled=!["datetime","time_window"].includes(m);
+    $("loadSlotsBtn").textContent=m==="time_window"?"受付時間帯を表示":"空き時間を表示";
+    $("slotLabel").textContent=m==="time_window"?"受付時間帯":"空き時間";
+    $("appointmentSlot").innerHTML=`<option value="">先に${m==="time_window"?"受付時間帯":"空き時間"}を表示してください</option>`;
+    $("confirmTimeLabel").textContent=m==="time_window"?"受付時間帯":"日時";
+    $("confirm").classList.add("hidden");slots=[];selectedSlot=null;
+  }
+  async function loadSlots(){
+    clearError();selectedSlot=null;const requestedDate=$("appointmentDate").value;const mode=selectedType?.booking_mode||"datetime";
+    if(!requestedDate||requestedDate<todayJst()){showError("過去の日付は予約できません。今日以降の日付を選択してください。");$("appointmentSlot").innerHTML='<option value="">選択できません</option>';return;}
+    $("appointmentSlot").innerHTML='<option value="">読み込み中...</option>';
+    try{
+      const r=await api.getAppointmentSlots({date:requestedDate,appointment_type_id:$("appointmentType").value});
+      slots=(r.data||[]).filter(s=>s.available!==false&&s.appointment_slot_id&&isFutureSlot(s));
+      $("appointmentSlot").innerHTML='<option value="">選択してください</option>'+slots.map(s=>`<option value="${s.appointment_slot_id}">${slotLabel(s,mode)}</option>`).join("");
+      if(!slots.length)showError(mode==="time_window"?"選択できる受付時間帯がありません。":"選択できる空き時間がありません。");
+    }catch(e){showError("予約枠を取得できませんでした。もう一度お試しください。");$("appointmentSlot").innerHTML='<option value="">取得失敗</option>';}
+  }
+  function showConfirm(){
+    clearError();selectedType=types.find(t=>t.appointment_type_id===$("appointmentType").value)||null;selectedSlot=slots.find(s=>s.appointment_slot_id===$("appointmentSlot").value)||null;
+    if(!selectedType||!selectedSlot){showError(selectedType?.booking_mode==="time_window"?"予約種別と受付時間帯を選択してください。":"予約種別と空き時間を選択してください。");return;}
+    if(!isFutureSlot(selectedSlot)){showError("過去の時間は予約できません。空き枠を再取得してください。");return;}
+    $("confirmType").textContent=selectedType.name||selectedType.appointment_type_name||selectedType.appointment_type_id;
+    $("confirmMode").textContent=selectedType.booking_mode;
+    $("confirmTimeLabel").textContent=selectedType.booking_mode==="time_window"?"受付時間帯":"日時";
+    $("confirmDateTime").textContent=slotLabel(selectedSlot,selectedType.booking_mode);
+    $("confirmSlot").textContent=selectedSlot.appointment_slot_id;$("confirm").classList.remove("hidden");$("confirm").scrollIntoView({behavior:"smooth",block:"start"});
+  }
+  async function create(){
+    if(submitting)return;clearError();if(!selectedType||!selectedSlot){showError("予約内容をもう一度確認してください。");return;}if(!isFutureSlot(selectedSlot)){showError("この予約枠はすでに過ぎています。空き枠を再取得してください。");return;}
+    submitting=true;$("createBtn").disabled=true;$("createBtn").textContent="処理中...";
+    try{
+      const r=await api.createAppointment({appointment_type_id:selectedType.appointment_type_id,appointment_slot_id:selectedSlot.appointment_slot_id,appointment_date:selectedSlot.appointment_date||$("appointmentDate").value,start_at:selectedSlot.start_at,end_at:selectedSlot.end_at,source:source()});
+      const a=r.data||{};$("createdId").textContent=a.appointment_id||"-";$("createdStatus").textContent=DPRO_MEDICAL_PATIENT_API.getStatusLabel(a.status);$("detailLink").href=`patient-reservation-detail.html?appointment_id=${encodeURIComponent(a.appointment_id||"")}`;$("success").classList.remove("hidden");$("confirm").classList.add("hidden");$("bookingCard").classList.add("hidden");
+    }catch(e){showError("予約処理に失敗しました。もう一度お試しください。");}
+    finally{submitting=false;$("createBtn").disabled=false;$("createBtn").textContent="予約を確定";}
+  }
+  try{
+    const dateInput=$("appointmentDate");const minDate=todayJst();dateInput.min=minDate;if(!dateInput.value||dateInput.value<minDate)dateInput.value=minDate;
+    const runtime=await DPRO_MEDICAL_PATIENT_API.prepareRuntime();if(runtime==="demo_mock")dateInput.value=tomorrowJst();
+    api=DPRO_MEDICAL_PATIENT_API.createPatientApiAdapter(runtime);
+    const ctx=(await api.getContext()).data,f=ctx.features||(runtime==="demo_mock"?window.DPRO_MEDICAL_PATIENT_MOCK.feature_flags:{});
+    if(!(f.feature_web_booking||f.feature_line_booking)){$("bookingCard").classList.add("hidden");$("offBox").classList.remove("hidden");return;}
+    types=(await api.getAppointmentTypes()).data||[];types=types.filter(t=>featureAllows(t,f));
+    $("appointmentType").innerHTML=types.map(t=>`<option value="${t.appointment_type_id}">${t.name||t.appointment_type_name||t.appointment_type_id}</option>`).join("");
+    if(!types.length){$("bookingCard").classList.add("hidden");$("offBox").classList.remove("hidden");return;}
+    renderMode();$("appointmentType").addEventListener("change",renderMode);$("appointmentDate").addEventListener("change",()=>{slots=[];$("appointmentSlot").innerHTML='<option value="">空き枠を再取得してください</option>';$("confirm").classList.add("hidden");});$("loadSlotsBtn").addEventListener("click",loadSlots);$("appointmentSlot").addEventListener("change",()=>{selectedSlot=slots.find(s=>s.appointment_slot_id===$("appointmentSlot").value)||null;});$("confirmBtn").addEventListener("click",showConfirm);$("createBtn").addEventListener("click",create);
+  }catch(e){showError("予約画面を準備できませんでした。もう一度お試しください。");$("confirmBtn").disabled=true;}
 })();
-</script></main></body></html>
+</script>
+</main>
+</body>
+</html>
