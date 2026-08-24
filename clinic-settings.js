@@ -1,5 +1,6 @@
 (function(global){
   'use strict';
+  // BRUSHUP-7 PATIENT APPOINTMENT SELF-SERVICE V1.0
   // BRUSHUP-6 LINE CALL / QUEUE PROXIMITY NOTIFICATION V1.0
   // BRUSHUP-5 PUBLIC / HP WAITING DISPLAY V1.0
   const MODE_LABELS={datetime:'日時予約',queue:'順番受付',time_window:'時間帯受付',complete_reservation:'完全予約（案内）',walk_in:'直接来院（予約不要）'};
@@ -104,6 +105,43 @@
     }
   }
 
+  function ensurePatientAppointmentCard(){
+    const root=$('clinic-settings-root'); if(!root||$('patient-appointment-settings-card'))return;
+    const card=document.createElement('div'); card.className='card settings-card'; card.id='patient-appointment-settings-card';
+    card.innerHTML=`<h3>患者の予約変更・キャンセル</h3>
+      <p class="settings-note">患者本人が予約確認画面から行える操作を医院ごとに切り替えます。</p>
+      <div class="setting-row"><div class="setting-copy"><strong>患者自身の予約変更を許可</strong><span class="muted">予約済み・受付待ちの未来予約のみ</span></div><label class="switch"><input id="setting-patient-allow-reschedule" type="checkbox"><span></span></label></div>
+      <div class="setting-row"><div class="setting-copy"><strong>患者自身のキャンセルを許可</strong><span class="muted">予約済み・受付待ちの未来予約のみ</span></div><label class="switch"><input id="setting-patient-allow-cancel" type="checkbox"><span></span></label></div>
+      <div class="settings-actions"><button class="btn primary" id="save-patient-appointment-settings" type="button">予約変更・キャンセル設定を保存</button><span id="patient-appointment-settings-message" class="settings-message"></span></div>
+      <p class="settings-note">受付済み・完了・キャンセル済み・過去予約は、この設定がONでも患者側から変更できません。</p>`;
+    root.appendChild(card);
+    $('save-patient-appointment-settings')?.addEventListener('click',savePatientAppointments);
+  }
+  function renderPatientAppointmentSettings(){
+    ensurePatientAppointmentCard();
+    const a=context?.patient_ui?.appointments||context?.patientUi?.appointments||{};
+    $('setting-patient-allow-reschedule').checked=a.allow_reschedule??a.allowReschedule??true;
+    $('setting-patient-allow-cancel').checked=a.allow_cancel??a.allowCancel??true;
+  }
+  async function savePatientAppointments(){
+    const btn=$('save-patient-appointment-settings'); if(!btn)return;
+    btn.disabled=true;message('patient-appointment-settings-message','保存中...','');
+    const payload={
+      allow_reschedule:$('setting-patient-allow-reschedule').checked,
+      allow_cancel:$('setting-patient-allow-cancel').checked
+    };
+    try{
+      const data=await request('/api/medical/v1/clinic-settings/patient-appointments',{method:'PATCH',body:JSON.stringify(payload)});
+      if(context){
+        context.patient_ui=context.patient_ui||{};
+        context.patient_ui.appointments=data?.patient_ui?.appointments||payload;
+      }
+      message('patient-appointment-settings-message','保存しました。患者予約確認画面へ反映されます。','ok');
+    }catch(e){
+      message('patient-appointment-settings-message','保存できませんでした。 '+e.message,'err');
+    }finally{btn.disabled=false;}
+  }
+
   async function load(){
     busy(true);setBanner('設定を読み込んでいます。');
     try{
@@ -123,7 +161,7 @@
       const hpEnabled=context?.features?.feature_hp_waiting===true;
       ['setting-hp-show-waiting','setting-hp-show-current','setting-hp-refresh-seconds','save-public-waiting-settings'].forEach(id=>{const el=$(id);if(el)el.disabled=!hpEnabled;});
       if($('public-waiting-feature-note')) $('public-waiting-feature-note').textContent=hpEnabled?'feature_hp_waiting：ON':'feature_hp_waiting がOFFのため変更できません。';
-      renderBooking();renderLineCallStatus();setBanner('現在の設定を読み込みました。','ok');
+      renderBooking();renderLineCallStatus();renderPatientAppointmentSettings();setBanner('現在の設定を読み込みました。','ok');
     }catch(e){setBanner('設定を読み込めませんでした。 '+e.message,'err');}
     finally{busy(false);}
   }
