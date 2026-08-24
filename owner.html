@@ -1,7 +1,20 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>医院管理 | DPRO MEDICAL</title><link rel="stylesheet" href="clinic.css"></head><body>
-<div class="app"><aside class="sidebar"><div class="brand">DPRO MEDICAL<small>医院管理</small></div><nav class="nav">
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>医院管理 | DPRO MEDICAL</title>
+<link rel="stylesheet" href="clinic.css">
+<style>
+.settings-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:16px}.settings-card h3{margin:0 0 6px}.setting-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;border-top:1px solid #e5e7eb}.setting-row:first-of-type{border-top:0}.setting-copy{min-width:0}.setting-copy strong{display:block}.switch{position:relative;display:inline-flex;flex:0 0 auto;width:52px;height:30px}.switch input{position:absolute;opacity:0;pointer-events:none}.switch span{width:52px;height:30px;border-radius:999px;background:#cbd5e1;position:relative;transition:.18s}.switch span:after{content:"";position:absolute;width:24px;height:24px;left:3px;top:3px;border-radius:50%;background:white;box-shadow:0 1px 4px rgba(0,0,0,.2);transition:.18s}.switch input:checked+span{background:#1769aa}.switch input:checked+span:after{transform:translateX(22px)}.settings-select{min-width:150px}.settings-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}.settings-message{font-size:13px}.settings-message.ok{color:#166534}.settings-message.err{color:#991b1b}.booking-setting-list{display:grid;gap:10px}.booking-setting-item{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,240px) 88px;gap:10px;align-items:center;padding:12px;border:1px solid #e5e7eb;border-radius:12px}.booking-setting-name strong{display:block}.booking-setting-name small{color:#64748b}.booking-setting-item select{width:100%}.booking-setting-item .btn{width:100%}.settings-note{font-size:13px;color:#64748b;line-height:1.6}.settings-loading{opacity:.65;pointer-events:none}@media(max-width:900px){.settings-grid{grid-template-columns:1fr}}@media(max-width:620px){.booking-setting-item{grid-template-columns:1fr}.settings-select{width:100%;min-width:0}.setting-row{align-items:flex-start}.switch{margin-top:2px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar"><div class="brand">DPRO MEDICAL<small>医院管理</small></div><nav class="nav">
 <button class="active" data-nav="dashboard">ダッシュボード</button><button data-nav="today">本日の患者</button><button data-nav="appointments">予約</button><button data-nav="reception">受付</button><button data-nav="workflow">院内状況</button><button data-nav="patients">患者</button><button data-nav="questionnaire">問診</button><button data-nav="doctors">医師</button><button data-nav="staff">スタッフ</button><button data-nav="line">LINE</button><button data-nav="homepage">ホームページ</button><button data-nav="settings">設定</button>
-</nav></aside><main class="main"><header class="topbar"><div><div class="muted">DPRO MEDICAL / 本日の医院運用</div><h1 id="page-title">ダッシュボード</h1></div></header>
+</nav></aside>
+<main class="main"><header class="topbar"><div><div class="muted">DPRO MEDICAL / 本日の医院運用</div><h1 id="page-title">ダッシュボード</h1></div></header>
 <section id="dashboard" class="section active"><div class="grid kpis"><div class="card kpi"><div class="label">本日予約</div><div class="value" data-kpi="appointmentsToday"></div></div><div class="card kpi"><div class="label">受付済</div><div class="value" data-kpi="checkedIn"></div></div><div class="card kpi"><div class="label">現在待ち</div><div class="value" data-kpi="waitingNow"></div></div><div class="card kpi"><div class="label">診察中</div><div class="value" data-kpi="consultingNow"></div></div><div class="card kpi"><div class="label">完了</div><div class="value" data-kpi="completed"></div></div><div class="card kpi"><div class="label">平均待ち</div><div class="value"><span data-kpi="avgWaitMin"></span><small>分</small></div></div></div><div class="grid two-col"><div class="card"><h2>次に対応すべき患者</h2><div data-render="workflow"></div></div><div class="card"><h2>運用状況</h2><p class="permission-note">本日の受付・待ち・診察状況をまとめて確認できます。</p><div class="notice">医院の運用設定に応じて、必要な工程だけを表示します。</div></div></div></section>
 <section id="today" class="section"><h2>本日の患者</h2><div data-render="today"></div></section>
 <section id="appointments" class="section"><h2>予約管理</h2><div data-render="appointments"></div></section>
@@ -13,5 +26,28 @@
 <section id="staff" class="section"><h2>スタッフ</h2><div class="card">スタッフ画面では、本日の患者・受付・院内状況・患者検索・問診確認を利用できます。</div></section>
 <section id="line" class="section"><h2>LINE</h2><div class="card">LINEから利用する予約・受付・問診などの連携状況を確認します。</div></section>
 <section id="homepage" class="section"><h2>ホームページ</h2><div class="card">医院ホームページの公開情報と患者向け導線を確認します。</div></section>
-<section id="settings" class="section"><h2>設定</h2><div class="card"><strong>利用機能</strong><p>医院で利用する予約・受付・問診・院内状況などの機能を管理します。</p><div class="notice">設定変更は医院の運用方針を確認したうえで行ってください。</div></div></section>
-</main></div><script>window.DPRO_MEDICAL_CLINIC_ROLE_HINT="owner";</script><script src="config.js"></script><script src="auth-supabase-auth-client.js"></script><script src="clinic-runtime-config.js"></script></body></html>
+<section id="settings" class="section">
+  <h2>設定</h2>
+  <div id="clinic-settings-banner" class="notice">設定を読み込んでいます。</div>
+  <div class="settings-grid" id="clinic-settings-root">
+    <div class="card settings-card">
+      <h3>患者向け待ち状況</h3>
+      <p class="settings-note">患者の「待ち状況」画面に表示する項目と自動更新間隔を変更します。</p>
+      <div class="setting-row"><div class="setting-copy"><strong>現在番号を表示</strong><span class="muted">いま呼ばれている番号</span></div><label class="switch"><input id="setting-show-current" type="checkbox"><span></span></label></div>
+      <div class="setting-row"><div class="setting-copy"><strong>自分の番号を表示</strong><span class="muted">患者本人の受付番号</span></div><label class="switch"><input id="setting-show-mine" type="checkbox"><span></span></label></div>
+      <div class="setting-row"><div class="setting-copy"><strong>あと何人を表示</strong><span class="muted">自分より前の待ち人数</span></div><label class="switch"><input id="setting-show-ahead" type="checkbox"><span></span></label></div>
+      <div class="setting-row"><div class="setting-copy"><strong>自動更新</strong><span class="muted">15〜300秒</span></div><select id="setting-refresh-seconds" class="settings-select"><option value="15">15秒</option><option value="30">30秒</option><option value="60">60秒</option><option value="120">120秒</option><option value="300">300秒</option></select></div>
+      <div class="settings-actions"><button class="btn primary" id="save-waiting-settings" type="button">待ち状況設定を保存</button><span id="waiting-settings-message" class="settings-message"></span></div>
+    </div>
+    <div class="card settings-card">
+      <h3>予約種別ごとの予約方式</h3>
+      <p class="settings-note">予約メニューごとに「日時予約／順番受付／時間帯受付」などを切り替えます。患者画面は保存後に自動で切り替わります。</p>
+      <div id="booking-settings-list" class="booking-setting-list"></div>
+      <p class="settings-note">FeatureがOFFの方式は選択できません。「完全予約」「直接来院」は患者予約画面では案内表示になります。</p>
+    </div>
+  </div>
+</section>
+</main></div>
+<script>window.DPRO_MEDICAL_CLINIC_ROLE_HINT="owner";</script>
+<script src="config.js"></script><script src="auth-supabase-auth-client.js"></script><script src="clinic-runtime-config.js"></script><script src="clinic-settings.js"></script>
+</body></html>
