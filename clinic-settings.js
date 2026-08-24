@@ -1,5 +1,6 @@
 (function(global){
   'use strict';
+  // BRUSHUP-5 PUBLIC / HP WAITING DISPLAY V1.0
   const MODE_LABELS={datetime:'日時予約',queue:'順番受付',time_window:'時間帯受付',complete_reservation:'完全予約（案内）',walk_in:'直接来院（予約不要）'};
   const FEATURE_BY_MODE={datetime:'feature_datetime_booking',queue:'feature_queue',time_window:'feature_time_window'};
   const $=id=>document.getElementById(id);
@@ -35,6 +36,19 @@
     holder.querySelectorAll('[data-booking-save]').forEach(btn=>btn.addEventListener('click',()=>saveBookingMode(btn.dataset.bookingSave)));
   }
   function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function ensurePublicWaitingCard(){
+    const root=$('clinic-settings-root'); if(!root||$('public-waiting-settings-card'))return;
+    const card=document.createElement('div'); card.className='card settings-card'; card.id='public-waiting-settings-card';
+    card.innerHTML=`<h3>ホームページ待ち状況</h3>
+      <p class="settings-note">医院ホームページに表示する待ち状況と自動更新間隔を変更します。</p>
+      <div class="setting-row"><div class="setting-copy"><strong>待ち人数を表示</strong><span class="muted">院内全体の現在待ち人数</span></div><label class="switch"><input id="setting-hp-show-waiting" type="checkbox"><span></span></label></div>
+      <div class="setting-row"><div class="setting-copy"><strong>現在番号を表示</strong><span class="muted">いま呼ばれている受付番号</span></div><label class="switch"><input id="setting-hp-show-current" type="checkbox"><span></span></label></div>
+      <div class="setting-row"><div class="setting-copy"><strong>自動更新</strong><span class="muted">15〜300秒</span></div><select id="setting-hp-refresh-seconds" class="settings-select"><option value="15">15秒</option><option value="30">30秒</option><option value="60">60秒</option><option value="120">120秒</option><option value="300">300秒</option></select></div>
+      <div class="settings-actions"><button class="btn primary" id="save-public-waiting-settings" type="button">HP待ち状況設定を保存</button><span id="public-waiting-settings-message" class="settings-message"></span></div>
+      <p class="settings-note" id="public-waiting-feature-note"></p>`;
+    root.appendChild(card);
+    $('save-public-waiting-settings')?.addEventListener('click',savePublicWaiting);
+  }
   async function load(){
     busy(true);setBanner('設定を読み込んでいます。');
     try{
@@ -45,6 +59,15 @@
       $('setting-show-ahead').checked=w.show_people_ahead??w.showPeopleAhead??true;
       const seconds=Number(w.refresh_seconds??w.refreshSeconds??30); const select=$('setting-refresh-seconds');
       if(!Array.from(select.options).some(o=>Number(o.value)===seconds)){const o=document.createElement('option');o.value=String(seconds);o.textContent=seconds+'秒';select.appendChild(o);} select.value=String(seconds);
+      ensurePublicWaitingCard();
+      const hp=context?.public_ui?.waiting||context?.publicUi?.waiting||{};
+      $('setting-hp-show-waiting').checked=hp.show_waiting_count??hp.showWaitingCount??true;
+      $('setting-hp-show-current').checked=hp.show_current_number??hp.showCurrentNumber??false;
+      const hpSeconds=Number(hp.refresh_seconds??hp.refreshSeconds??30); const hpSelect=$('setting-hp-refresh-seconds');
+      if(!Array.from(hpSelect.options).some(o=>Number(o.value)===hpSeconds)){const o=document.createElement('option');o.value=String(hpSeconds);o.textContent=hpSeconds+'秒';hpSelect.appendChild(o);} hpSelect.value=String(hpSeconds);
+      const hpEnabled=context?.features?.feature_hp_waiting===true;
+      ['setting-hp-show-waiting','setting-hp-show-current','setting-hp-refresh-seconds','save-public-waiting-settings'].forEach(id=>{const el=$(id);if(el)el.disabled=!hpEnabled;});
+      if($('public-waiting-feature-note')) $('public-waiting-feature-note').textContent=hpEnabled?'feature_hp_waiting：ON':'feature_hp_waiting がOFFのため変更できません。';
       renderBooking();setBanner('現在の設定を読み込みました。','ok');
     }catch(e){setBanner('設定を読み込めませんでした。 '+e.message,'err');}
     finally{busy(false);}
@@ -55,6 +78,13 @@
     try{await request('/api/medical/v1/clinic-settings/patient-waiting',{method:'PATCH',body:JSON.stringify(payload)});message('waiting-settings-message','保存しました。患者画面へ反映されます。','ok');}
     catch(e){message('waiting-settings-message','保存できませんでした。 '+e.message,'err');}
     finally{btn.disabled=false;}
+  }
+  async function savePublicWaiting(){
+    const btn=$('save-public-waiting-settings'); if(!btn)return; btn.disabled=true;message('public-waiting-settings-message','保存中...','');
+    const payload={show_waiting_count:$('setting-hp-show-waiting').checked,show_current_number:$('setting-hp-show-current').checked,refresh_seconds:Number($('setting-hp-refresh-seconds').value)};
+    try{await request('/api/medical/v1/clinic-settings/public-waiting',{method:'PATCH',body:JSON.stringify(payload)});message('public-waiting-settings-message','保存しました。ホームページへ反映されます。','ok');}
+    catch(e){message('public-waiting-settings-message','保存できませんでした。 '+e.message,'err');}
+    finally{btn.disabled=context?.features?.feature_hp_waiting!==true;}
   }
   async function saveBookingMode(id){
     const select=document.querySelector(`[data-booking-select="${CSS.escape(id)}"]`); const msg=document.querySelector(`[data-booking-message="${CSS.escape(id)}"]`); const btn=document.querySelector(`[data-booking-save="${CSS.escape(id)}"]`);

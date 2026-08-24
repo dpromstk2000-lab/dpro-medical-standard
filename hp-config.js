@@ -15,4 +15,16 @@
       questionnaire: urls.questionnaire||""
     })
   });
+
+  // BRUSHUP-5 PUBLIC / HP WAITING DISPLAY V1.0
+  // Additive loader: existing HP runtime remains unchanged.
+  const waitingSection=document.getElementById("waiting-section");
+  if(waitingSection) waitingSection.hidden=true;
+  if(!document.querySelector('script[data-dpro-hp-waiting-live="1"]')){
+    const script=document.createElement("script");
+    script.src="hp-waiting-live.js";
+    script.async=true;
+    script.dataset.dproHpWaitingLive="1";
+    document.head.appendChild(script);
+  }
 })();
