@@ -1,5 +1,6 @@
 (function(global){
   'use strict';
+  // BRUSHUP-8 ARRIVAL CHECK-IN / QR / IPAD SETTINGS V1.0
   // BRUSHUP-7 PATIENT APPOINTMENT SELF-SERVICE V1.0
   // BRUSHUP-6 LINE CALL / QUEUE PROXIMITY NOTIFICATION V1.0
   // BRUSHUP-5 PUBLIC / HP WAITING DISPLAY V1.0
@@ -142,6 +143,59 @@
     }finally{btn.disabled=false;}
   }
 
+  function ensureCheckinCard(){
+    const root=$('clinic-settings-root'); if(!root||$('checkin-settings-card'))return;
+    const card=document.createElement('div'); card.className='card settings-card'; card.id='checkin-settings-card';
+    card.innerHTML=`<h3>来院受付（スマホ・QR・iPad）</h3>
+      <p class="settings-note">患者の来院受付方法と受付可能な時間帯を医院ごとに切り替えます。</p>
+      <div class="setting-row"><div class="setting-copy"><strong>患者スマホから受付</strong><span class="muted">患者TOPの「当日受付」から本人が受付</span></div><label class="switch"><input id="setting-checkin-patient-web" type="checkbox"><span></span></label></div>
+      <div class="setting-row"><div class="setting-copy"><strong>デジタル診察券QR受付</strong><span class="muted">5分で失効する署名付きQRを院内端末で受付</span></div><label class="switch"><input id="setting-checkin-qr" type="checkbox"><span></span></label></div>
+      <div class="setting-row"><div class="setting-copy"><strong>院内iPad受付</strong><span class="muted">iPad版の受付操作とQR受付</span></div><label class="switch"><input id="setting-checkin-ipad" type="checkbox"><span></span></label></div>
+      <div class="setting-row"><div class="setting-copy"><strong>受付開始</strong><span class="muted">予約開始時刻の何分前から受付できるか</span></div><select id="setting-checkin-before" class="settings-select"><option value="30">30分前</option><option value="60">60分前</option><option value="120">120分前</option><option value="180">180分前</option></select></div>
+      <div class="setting-row"><div class="setting-copy"><strong>受付終了</strong><span class="muted">予約終了時刻から何分後まで受付できるか</span></div><select id="setting-checkin-after" class="settings-select"><option value="0">予約終了時刻まで</option><option value="30">30分後</option><option value="60">60分後</option><option value="120">120分後</option><option value="180">180分後</option></select></div>
+      <div class="settings-actions"><button class="btn primary" id="save-checkin-settings" type="button">来院受付設定を保存</button><span id="checkin-settings-message" class="settings-message"></span></div>
+      <p class="settings-note" id="checkin-feature-note"></p>
+      <p class="settings-note">同じ予約を再度受付しても二重受付にはならず、最初の受付結果を返します。</p>`;
+    root.appendChild(card);
+    $('save-checkin-settings')?.addEventListener('click',saveCheckinSettings);
+  }
+  function renderCheckinSettings(){
+    ensureCheckinCard();
+    const c=context?.patient_ui?.checkin||context?.patientUi?.checkin||{};
+    $('setting-checkin-patient-web').checked=c.allow_patient_web??c.allowPatientWeb??true;
+    $('setting-checkin-qr').checked=c.allow_qr??c.allowQr??true;
+    $('setting-checkin-ipad').checked=c.allow_ipad??c.allowIpad??true;
+    const before=Number(c.before_minutes??c.beforeMinutes??60), after=Number(c.after_minutes??c.afterMinutes??120);
+    const beforeSelect=$('setting-checkin-before'), afterSelect=$('setting-checkin-after');
+    if(beforeSelect&&!Array.from(beforeSelect.options).some(o=>Number(o.value)===before)){const o=document.createElement('option');o.value=String(before);o.textContent=before+'分前';beforeSelect.appendChild(o);}
+    if(afterSelect&&!Array.from(afterSelect.options).some(o=>Number(o.value)===after)){const o=document.createElement('option');o.value=String(after);o.textContent=after===0?'予約終了時刻まで':after+'分後';afterSelect.appendChild(o);}
+    if(beforeSelect) beforeSelect.value=String(before);
+    if(afterSelect) afterSelect.value=String(after);
+    const qrOn=context?.features?.feature_qr_checkin===true;
+    const ipadOn=context?.features?.feature_ipad_checkin===true;
+    if($('setting-checkin-qr')) $('setting-checkin-qr').disabled=!qrOn;
+    if($('setting-checkin-ipad')) $('setting-checkin-ipad').disabled=!ipadOn;
+    if($('checkin-feature-note')) $('checkin-feature-note').textContent=`feature_qr_checkin：${qrOn?'ON':'OFF'} / feature_ipad_checkin：${ipadOn?'ON':'OFF'} / feature_queue：${context?.features?.feature_queue===true?'ON':'OFF'}`;
+  }
+  async function saveCheckinSettings(){
+    const btn=$('save-checkin-settings'); if(!btn)return;
+    btn.disabled=true;message('checkin-settings-message','保存中...','');
+    const payload={
+      allow_patient_web:$('setting-checkin-patient-web').checked,
+      allow_qr:$('setting-checkin-qr').checked,
+      allow_ipad:$('setting-checkin-ipad').checked,
+      before_minutes:Number($('setting-checkin-before').value),
+      after_minutes:Number($('setting-checkin-after').value)
+    };
+    try{
+      const data=await request('/api/medical/v1/clinic-settings/check-in',{method:'PATCH',body:JSON.stringify(payload)});
+      if(context){context.patient_ui=context.patient_ui||{};context.patient_ui.checkin=data?.patient_ui?.checkin||payload;}
+      message('checkin-settings-message','保存しました。患者受付・QR・iPadへ反映されます。','ok');
+      renderCheckinSettings();
+    }catch(e){message('checkin-settings-message','保存できませんでした。 '+e.message,'err');}
+    finally{btn.disabled=false;}
+  }
+
   async function load(){
     busy(true);setBanner('設定を読み込んでいます。');
     try{
@@ -161,7 +215,7 @@
       const hpEnabled=context?.features?.feature_hp_waiting===true;
       ['setting-hp-show-waiting','setting-hp-show-current','setting-hp-refresh-seconds','save-public-waiting-settings'].forEach(id=>{const el=$(id);if(el)el.disabled=!hpEnabled;});
       if($('public-waiting-feature-note')) $('public-waiting-feature-note').textContent=hpEnabled?'feature_hp_waiting：ON':'feature_hp_waiting がOFFのため変更できません。';
-      renderBooking();renderLineCallStatus();renderPatientAppointmentSettings();setBanner('現在の設定を読み込みました。','ok');
+      renderBooking();renderLineCallStatus();renderPatientAppointmentSettings();renderCheckinSettings();setBanner('現在の設定を読み込みました。','ok');
     }catch(e){setBanner('設定を読み込めませんでした。 '+e.message,'err');}
     finally{busy(false);}
   }

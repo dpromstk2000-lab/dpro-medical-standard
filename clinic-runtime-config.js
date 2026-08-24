@@ -17,11 +17,15 @@
     'staff.html': Object.freeze({ requiredPermissions: Object.freeze([]) })
   });
 
-  function currentPagePolicy() {
+  function currentPageName() {
     const pathname = global.location && typeof global.location.pathname === 'string'
       ? global.location.pathname
       : '';
-    const pageName = pathname.split('/').filter(Boolean).pop() || '';
+    return pathname.split('/').filter(Boolean).pop() || '';
+  }
+
+  function currentPagePolicy() {
+    const pageName = currentPageName();
     const policy = PAGE_POLICY[pageName];
     if (!policy) throw new Error('DPRO MEDICAL clinic runtime: unknown canonical page route: ' + pageName);
     return policy;
@@ -94,6 +98,9 @@
       if (!global.DPROMedicalMock) throw new Error('Explicit demo mock selected, but DPROMedicalMock was not initialized.');
     }
     await loadScript('clinic-api-adapter.js');
+    // BRUSHUP-8: bridge existing clinic UI check-in control to canonical visit.write.
+    // No new permission key is introduced into MED-AUTH-001.
+    if (currentPageName() === 'owner-ipad.html') await loadScript('ipad-permission-bridge.js');
     await loadScript('clinic.js');
   }
 
