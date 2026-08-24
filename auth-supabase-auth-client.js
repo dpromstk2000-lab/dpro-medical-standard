@@ -1,14 +1,11 @@
 /*
  * DPRO MEDICAL INTEGRATION-1 / STANDARD V1.3
  * Browser Auth Runtime Adapter
- *
- * Public client config only:
- *   window.DPRO_MEDICAL_CONFIG.supabaseUrl
- *   window.DPRO_MEDICAL_CONFIG.supabasePublishableKey
+ * BRUSHUP-4 SESSION SPLIT V1.0
  *
  * SECURITY:
  * - Uses official supabase-js v2 browser client lifecycle.
- * - Does not manually persist access_token / refresh_token.
+ * - Patient and staff sessions use separate storage keys.
  * - Browser role / tenant / patient values are never authorization trust sources.
  * - Server /api/medical/v1/context remains the authorization source of truth.
  */
@@ -17,7 +14,7 @@
 
   const SDK_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
   const API_BASE = '/api/medical/v1';
-  let clientPromise = null;
+  const clientPromises = { staff: null, patient: null };
   let authWatcher = null;
 
   class DproAuthError extends Error {
@@ -35,6 +32,34 @@
 
   function cfg() {
     return global.DPRO_MEDICAL_CONFIG || {};
+  }
+
+  function currentPageName() {
+    try {
+      const pathname = global.location && typeof global.location.pathname === 'string' ? global.location.pathname : '';
+      return pathname.split('/').filter(Boolean).pop() || '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function pageActorScope() {
+    const name = currentPageName();
+    if (name === 'patient-login.html' || name === 'member.html' || name.startsWith('patient-')) return 'patient';
+    return 'staff';
+  }
+
+  function normalizeScope(scope) {
+    return scope === 'patient' ? 'patient' : 'staff';
+  }
+
+  function storageKey(scope, url) {
+    let projectRef = 'medical';
+    try {
+      const host = new URL(url).hostname || '';
+      projectRef = host.split('.')[0] || projectRef;
+    } catch (_) {}
+    return `dpro-medical-${projectRef}-${normalizeScope(scope)}-auth-v1`;
   }
 
   function validatePublicConfig() {
@@ -82,9 +107,10 @@
     });
   }
 
-  async function getClient() {
-    if (!clientPromise) {
-      clientPromise = (async () => {
+  async function getClient(scopeMaybe) {
+    const scope = normalizeScope(scopeMaybe || pageActorScope());
+    if (!clientPromises[scope]) {
+      clientPromises[scope] = (async () => {
         const { url, key } = validatePublicConfig();
         const sdk = await loadSupabaseSdk();
         return sdk.createClient(url, key, {
@@ -92,19 +118,20 @@
             persistSession: true,
             autoRefreshToken: true,
             detectSessionInUrl: true,
-            flowType: 'pkce'
+            flowType: 'pkce',
+            storageKey: storageKey(scope, url)
           }
         });
       })().catch(err => {
-        clientPromise = null;
+        clientPromises[scope] = null;
         throw err;
       });
     }
-    return clientPromise;
+    return clientPromises[scope];
   }
 
-  async function getSession() {
-    const client = await getClient();
+  async function getSession(scopeMaybe) {
+    const client = await getClient(scopeMaybe);
     const first = await client.auth.getSession();
     if (first.error) throw fail('AUTH_SESSION_INVALID', '認証セッションを確認できませんでした。', first.error);
     let session = first.data && first.data.session ? first.data.session : null;
@@ -122,16 +149,16 @@
     return session;
   }
 
-  async function getAccessToken() {
-    const session = await getSession();
+  async function getAccessToken(scopeMaybe) {
+    const session = await getSession(scopeMaybe);
     if (!session || !session.access_token) {
       throw fail('AUTH_SESSION_REQUIRED', 'ログインが必要です。');
     }
     return session.access_token;
   }
 
-  async function getUser() {
-    const client = await getClient();
+  async function getUser(scopeMaybe) {
+    const client = await getClient(scopeMaybe);
     const result = await client.auth.getUser();
     if (result.error) throw fail('AUTH_USER_INVALID', 'ログインユーザーを確認できませんでした。', result.error);
     return result.data ? result.data.user || null : null;
@@ -143,34 +170,34 @@
     return { email: String(o.email || '').trim(), password: String(o.password || '') };
   }
 
-  async function signInWithPassword(input, passwordMaybe) {
+  async function signInWithPassword(scope, input, passwordMaybe) {
     const credentials = normalizeCredentials(input, passwordMaybe);
     if (!credentials.email || !credentials.password) throw fail('AUTH_CREDENTIALS_REQUIRED', 'メールアドレスとパスワードを入力してください。');
-    const client = await getClient();
+    const client = await getClient(scope);
     const result = await client.auth.signInWithPassword(credentials);
     if (result.error) throw fail('AUTH_SIGN_IN_FAILED', 'ログインできませんでした。', result.error);
     return result.data;
   }
 
   async function signInStaff(input, passwordMaybe) {
-    return signInWithPassword(input, passwordMaybe);
+    return signInWithPassword('staff', input, passwordMaybe);
   }
 
   async function signInPatient(input, passwordMaybe) {
-    return signInWithPassword(input, passwordMaybe);
+    return signInWithPassword('patient', input, passwordMaybe);
   }
 
-  async function signOut() {
-    const client = await getClient();
+  async function signOut(scopeMaybe) {
+    const client = await getClient(scopeMaybe || pageActorScope());
     const result = await client.auth.signOut({ scope: 'local' });
     if (result.error) throw fail('AUTH_SIGN_OUT_FAILED', 'ログアウト処理に失敗しました。', result.error);
     return true;
   }
 
-  function onAuthStateChange(callback) {
+  function onAuthStateChange(callback, scopeMaybe) {
     let inner = null;
     let cancelled = false;
-    getClient().then(client => {
+    getClient(scopeMaybe || pageActorScope()).then(client => {
       if (cancelled) return;
       const result = client.auth.onAuthStateChange((event, session) => {
         try { callback(event, session); } catch (_) { /* callback isolation */ }
@@ -191,8 +218,9 @@
     return String(c.apiBaseUrl || '').replace(/\/+$/, '') + API_BASE + '/context';
   }
 
-  async function getMedicalContext() {
-    const token = await getAccessToken();
+  async function getMedicalContext(scopeMaybe) {
+    const scope = normalizeScope(scopeMaybe || pageActorScope());
+    const token = await getAccessToken(scope);
     const c = cfg();
     const headers = { Accept: 'application/json', Authorization: 'Bearer ' + token };
     if (typeof c.clinicId === 'string' && c.clinicId.trim()) headers['X-DPRO-Clinic-ID'] = c.clinicId.trim();
@@ -235,7 +263,7 @@
   }
 
   async function signOutAndRedirect(loginUrl) {
-    try { await signOut(); } catch (_) {}
+    try { await signOut(pageActorScope()); } catch (_) {}
     clearProtectedDom();
     global.location.replace(loginUrl || 'login.html');
   }
@@ -261,29 +289,31 @@
     global.location.replace(u.pathname + u.search + u.hash);
   }
 
-  function startProtectedWatcher(loginUrl) {
+  function startProtectedWatcher(loginUrl, actorType) {
     if (authWatcher) return;
     authWatcher = onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
         clearProtectedDom();
         redirectToLogin(loginUrl, 'AUTH_SESSION_REQUIRED');
       }
-    });
+    }, actorType);
   }
 
   async function requireActor(actorType, options) {
+    const scope = normalizeScope(actorType);
     const o = options && typeof options === 'object' ? options : {};
     if (o.allowExplicitDemoMock === true && explicitDemoMockSelected()) return { actor_type: actorType, demo_mock: true, permissions: [] };
     try {
-      const context = await getMedicalContext();
+      const context = await getMedicalContext(scope);
       if (context.actor_type !== actorType) throw fail('AUTH_ACTOR_MISMATCH', 'この画面を利用できるアカウントではありません。');
       if (actorType === 'patient' && !context.patient_id) throw fail('AUTHORIZATION_FAILED', '患者紐付けを確認できませんでした。');
       const required = Array.isArray(o.requiredPermissions) ? o.requiredPermissions : [];
       const actual = Array.isArray(context.permissions) ? context.permissions : [];
       const missing = required.filter(permission => !actual.includes(permission));
       if (missing.length) throw fail('PERMISSION_DENIED', 'この画面を表示する権限がありません。', { missing });
-      mountLogout(o.loginUrl || (actorType === 'patient' ? 'patient-login.html' : 'login.html'));
-      startProtectedWatcher(o.loginUrl || (actorType === 'patient' ? 'patient-login.html' : 'login.html'));
+      const loginUrl = o.loginUrl || (actorType === 'patient' ? 'patient-login.html' : 'login.html');
+      mountLogout(loginUrl);
+      startProtectedWatcher(loginUrl, scope);
       return context;
     } catch (error) {
       if (o.redirect !== false) redirectToLogin(o.loginUrl || (actorType === 'patient' ? 'patient-login.html' : 'login.html'), error.code || 'AUTH_REQUIRED');
@@ -311,6 +341,11 @@
     requireActor,
     signOutAndRedirect,
     routeAfterLogin,
-    safeNextUrl
+    safeNextUrl,
+    authScope: pageActorScope,
+    authStorageKey: function () {
+      const { url } = validatePublicConfig();
+      return storageKey(pageActorScope(), url);
+    }
   });
 })(window, document);
