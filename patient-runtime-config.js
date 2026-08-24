@@ -8,7 +8,7 @@
   const clinicId=typeof input.clinicId==="string" ? input.clinicId : (typeof shared.clinicId==="string" ? shared.clinicId : "");
   window.DPRO_MEDICAL_CONFIG=Object.freeze({...shared,environmentMode,mockMode,apiBaseUrl,clinicId});
 
-  // BRUSHUP-8 ARRIVAL CHECK-IN / QR RUNTIME V1.0
+  // BRUSHUP-8 ARRIVAL CHECK-IN / QR RUNTIME V1.1
   // BRUSHUP-7 PATIENT APPOINTMENT SELF-SERVICE V1.3
   if(typeof document!=="undefined" && /(?:^|\/)patient-reservation-detail\.html$/.test(location.pathname||"")){
     const s=document.createElement("script");
@@ -23,6 +23,7 @@
     c.dataset.dproPatientAppointmentPostActionCleanup="1";
     document.head.appendChild(c);
   }
+
   if(typeof document!=="undefined" && /(?:^|\/)member\.html$/.test(location.pathname||"")){
     const m=document.createElement("script");
     m.src="patient-member-checkin-entry.js";
@@ -37,6 +38,12 @@
     r.defer=true;
     r.dataset.dproPatientReceptionLive="1";
     document.head.appendChild(r);
+
+    const p=document.createElement("script");
+    p.src="patient-reception-post-checkin.js";
+    p.defer=true;
+    p.dataset.dproPatientReceptionPostCheckin="1";
+    document.head.appendChild(p);
   }
 
   if(typeof document!=="undefined" && /(?:^|\/)patient-digital-card\.html$/.test(location.pathname||"")){
