@@ -129,12 +129,14 @@
     }
     await loadScript('clinic-api-adapter.js');
     installContextKeyCompatibilityBridge();
+    // BRUSHUP-9 V1.4: hydrate today's patient names from the canonical patient endpoint.
+    await loadScript('clinic-patient-resolver.js?v=brushup9-1.4-patient-resolver');
     // BRUSHUP-8: bridge existing clinic UI check-in control to canonical visit.write.
     // No new permission key is introduced into MED-AUTH-001.
     if (currentPageName() === 'owner-ipad.html') await loadScript('ipad-permission-bridge.js');
     // BRUSHUP-9 V1.3: immediate press feedback + processing state before clinic.js action handling.
     await loadScript('clinic-action-feedback.js?v=brushup9-1.3-action-feedback');
-    await loadScript('clinic.js?v=brushup9-1.2-context-key-hotfix');
+    await loadScript('clinic.js?v=brushup9-1.4-patient-resolver');
   }
 
   global.DPRO_MEDICAL_CLINIC_BOOT = bootstrap().catch(error => {
