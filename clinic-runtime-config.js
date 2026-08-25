@@ -82,6 +82,36 @@
     if (document.body) render(); else document.addEventListener('DOMContentLoaded', render, { once: true });
   }
 
+  // BRUSHUP-9 V1.2: clinic-api-adapter normalizes API object keys to camelCase.
+  // Existing clinic UI contracts intentionally keep the formal snake_case feature/workflow keys.
+  // Restore snake_case aliases without removing camelCase keys so both generations stay compatible.
+  function installContextKeyCompatibilityBridge() {
+    const api = global.DPROMedicalClinicApi;
+    if (!api || typeof api.getContext !== 'function' || api.__brushup9ContextKeyBridge === true) return;
+
+    const originalGetContext = api.getContext.bind(api);
+    const addSnakeCaseAliases = object => {
+      if (!object || typeof object !== 'object' || Array.isArray(object)) return object;
+      Object.keys(object).forEach(key => {
+        const snake = key.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
+        if (snake !== key && !Object.prototype.hasOwnProperty.call(object, snake)) {
+          object[snake] = object[key];
+        }
+      });
+      return object;
+    };
+
+    api.getContext = async function () {
+      const context = await originalGetContext();
+      if (context && typeof context === 'object') {
+        addSnakeCaseAliases(context.features);
+        addSnakeCaseAliases(context.workflowConfig);
+      }
+      return context;
+    };
+    api.__brushup9ContextKeyBridge = true;
+  }
+
   async function bootstrap() {
     if (!mockMode) {
       const auth = global.DPRO_MEDICAL_AUTH;
@@ -98,11 +128,12 @@
       if (!global.DPROMedicalMock) throw new Error('Explicit demo mock selected, but DPROMedicalMock was not initialized.');
     }
     await loadScript('clinic-api-adapter.js');
+    installContextKeyCompatibilityBridge();
     // BRUSHUP-8: bridge existing clinic UI check-in control to canonical visit.write.
     // No new permission key is introduced into MED-AUTH-001.
     if (currentPageName() === 'owner-ipad.html') await loadScript('ipad-permission-bridge.js');
-    // BRUSHUP-9: cache-bust the clinic workflow runtime so queue controls are authoritative immediately after GitHub Pages deploy.
-    await loadScript('clinic.js?v=brushup9-1.1-permission-hotfix');
+    // BRUSHUP-9 V1.2: cache-bust clinic workflow runtime after context-key compatibility hotfix.
+    await loadScript('clinic.js?v=brushup9-1.2-context-key-hotfix');
   }
 
   global.DPRO_MEDICAL_CLINIC_BOOT = bootstrap().catch(error => {
