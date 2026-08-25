@@ -8,6 +8,15 @@
   const clinicId=typeof input.clinicId==="string" ? input.clinicId : (typeof shared.clinicId==="string" ? shared.clinicId : "");
   window.DPRO_MEDICAL_CONFIG=Object.freeze({...shared,environmentMode,mockMode,apiBaseUrl,clinicId});
 
+  // BRUSHUP-10 RECEPTION MODE SWITCH + CURRENT DIAGNOSIS NUMBER DISPLAY V1.0
+  if(typeof document!=="undefined" && /(?:^|\/)patient-(?:reservation|wait-status)\.html$/.test(location.pathname||"")){
+    const b10=document.createElement("script");
+    b10.src="patient-brushup10-reception-display.js?v=brushup10-1.0";
+    b10.defer=true;
+    b10.dataset.dproPatientBrushup10="1";
+    document.head.appendChild(b10);
+  }
+
   // BRUSHUP-8 ARRIVAL CHECK-IN / QR RUNTIME V1.3
   // BRUSHUP-7 PATIENT APPOINTMENT SELF-SERVICE V1.3
   if(typeof document!=="undefined" && /(?:^|\/)patient-reservation-detail\.html$/.test(location.pathname||"")){

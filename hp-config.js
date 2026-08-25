@@ -27,4 +27,14 @@
     script.dataset.dproHpWaitingLive="1";
     document.head.appendChild(script);
   }
+
+  // BRUSHUP-10: terminology-only public label layer. The canonical public
+  // waiting endpoint and current_queue_number contract are unchanged.
+  if(!document.querySelector('script[data-dpro-hp-brushup10="1"]')){
+    const b10=document.createElement("script");
+    b10.src="hp-brushup10-current-number.js?v=brushup10-1.0";
+    b10.defer=true;
+    b10.dataset.dproHpBrushup10="1";
+    document.head.appendChild(b10);
+  }
 })();

@@ -137,6 +137,8 @@
     // BRUSHUP-9 V1.3: immediate press feedback + processing state before clinic.js action handling.
     await loadScript('clinic-action-feedback.js?v=brushup9-1.3-action-feedback');
     await loadScript('clinic.js?v=brushup9-1.4-patient-resolver');
+    // BRUSHUP-10: additive reception-mode terminology + current diagnosis number dashboard.
+    await loadScript('clinic-brushup10-mode-current.js?v=brushup10-1.0');
   }
 
   global.DPRO_MEDICAL_CLINIC_BOOT = bootstrap().catch(error => {
