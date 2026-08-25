@@ -9,11 +9,16 @@
     consult_wait:'診察待ち', consulting:'診察', procedure_wait:'処置待ち',
     procedure:'処置', payment_wait:'会計待ち', completed:'完了'
   };
+  const queueLabels = {
+    waiting:'待機中', called:'呼出中', paused:'一時停止', skipped:'保留',
+    completed:'案内済', cancelled:'取消'
+  };
   const nextVisit = {
     arrived:'waiting', waiting:'exam_wait', exam_wait:'examining', examining:'consult_wait',
     consult_wait:'consulting', consulting:'procedure_wait', procedure_wait:'procedure',
     procedure:'payment_wait', payment_wait:'completed'
   };
+  const queueDoneVisitStatuses = new Set(['examining','consulting','procedure','payment_wait','completed']);
 
   const state = {
     context: null,
@@ -32,7 +37,7 @@
   function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
-  const displayStatusLabels = Object.assign({}, visitLabels, {
+  const displayStatusLabels = Object.assign({}, visitLabels, queueLabels, {
     confirmed:'予約確定', checked_in:'受付済', cancelled:'キャンセル', no_show:'来院なし',
     answered:'回答済', needs_review:'要確認', unanswered:'未回答', submitted:'回答済', reviewed:'確認済',
     pending:'確認待ち', active:'有効', inactive:'停止'
@@ -56,6 +61,16 @@
     const todayPatient = state.today.map(rowPatient).find(p => p.patientId === id);
     const cached = state.patientSearchCache.find(p => p.patientId === id);
     return todayPatient || cached || { name:'患者情報なし', patientId:id, kana:'', phone:'' };
+  }
+  function queueIdOf(q) { return q && (q.queueId || q.queueEntryId || q.id) || ''; }
+  function queueNumberOf(q) { return q ? (q.queueNumber ?? q.number ?? '-') : '-'; }
+  function queueForVisit(v) {
+    if (!v) return null;
+    return state.queue.find(q =>
+      (v.queueId && queueIdOf(q) === v.queueId) ||
+      (q.visitId && q.visitId === v.visitId) ||
+      (v.appointmentId && q.appointmentId === v.appointmentId)
+    ) || null;
   }
 
   function activeVisitStatuses() {
@@ -102,7 +117,6 @@
       const a = rowAppointment(row);
       const p = rowPatient(row);
       const v = rowVisit(row) || state.visits.find(x => x.appointmentId === appointmentIdOf(row));
-      const patientId = patientIdOf(row);
       const appointmentId = appointmentIdOf(row);
       const doctorId = a.doctorId || row.doctorId;
       const apptStatus = row.appointmentStatus || a.status;
@@ -166,6 +180,32 @@
     run();
   }
 
+  function queueControls(q) {
+    if (!q || !feature('feature_queue') || !hasPermission('queue.update')) return '';
+    const id = queueIdOf(q);
+    if (!id) return '';
+    const s = q.status;
+    if (s === 'waiting') {
+      return `<div class="queue-actions" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn small primary" data-queue-action="called" data-queue-id="${esc(id)}">呼出</button>
+        <button class="btn small" data-queue-action="paused" data-queue-id="${esc(id)}">一時停止</button>
+        <button class="btn small" data-queue-action="skipped" data-queue-id="${esc(id)}">保留</button>
+      </div>`;
+    }
+    if (s === 'called') {
+      return `<div class="queue-actions" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn small" data-queue-action="waiting" data-queue-id="${esc(id)}">待機へ戻す</button>
+        <button class="btn small" data-queue-action="skipped" data-queue-id="${esc(id)}">保留</button>
+      </div>`;
+    }
+    if (s === 'paused' || s === 'skipped') {
+      return `<div class="queue-actions" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn small primary" data-queue-action="waiting" data-queue-id="${esc(id)}">再開</button>
+      </div>`;
+    }
+    return '';
+  }
+
   function renderWorkflow(target) {
     const active = activeVisitStatuses();
     target.innerHTML = `<div class="flow">${active.map(s => {
@@ -173,8 +213,11 @@
       return `<div class="flow-col"><div class="flow-title"><span>${esc(visitLabels[s])}</span><span>${visits.length}</span></div>${visits.map(v => {
         const p = patientById(v.patientId);
         const next = nextEnabledStatus(v.status);
+        const q = queueForVisit(v);
+        const qInfo = q ? `<div class="muted" style="margin-top:4px">受付番号 ${esc(queueNumberOf(q))} / ${status(q.status)}</div>${queueControls(q)}` : '';
         return `<div class="flow-card"><strong>${esc(p.name)}</strong>
           <div class="muted">待ち ${esc(v.waitMin ?? v.waitMinutes ?? 0)}分</div>
+          ${qInfo}
           ${next && hasPermission('visit.update') ? `<button class="btn small primary" data-nextvisit="${esc(v.visitId)}" style="margin-top:8px">→ ${esc(visitLabels[next])}</button>` : ''}</div>`;
       }).join('') || '<div class="muted">0名</div>'}</div>`;
     }).join('')}</div>`;
@@ -224,15 +267,29 @@
     finally { state.busy = false; }
   }
 
+  async function updateQueueStatus(queueId, nextStatus) {
+    if (!queueId || state.busy || !API.canonical.queueStatuses.includes(nextStatus)) return;
+    state.busy = true;
+    try {
+      await API.updateQueue(queueId, { status: nextStatus });
+      await loadData();
+    } catch (err) { showError('呼出・待機状態を更新できませんでした。もう一度お試しください。'); }
+    finally { state.busy = false; }
+  }
+
   async function advanceVisit(visitId) {
     if (!visitId || state.busy) return;
     const visit = state.visits.find(v => v.visitId === visitId);
     if (!visit) return;
     const next = nextEnabledStatus(visit.status);
     if (!next) return;
+    const q = queueForVisit(visit);
     state.busy = true;
     try {
       await API.updateVisitStatus(visitId, next);
+      if (q && queueDoneVisitStatuses.has(next) && !['completed','cancelled'].includes(q.status)) {
+        await API.updateQueue(queueIdOf(q), { status: 'completed' });
+      }
       await loadData();
     } catch (err) { showError('院内状況を更新できませんでした。もう一度お試しください。'); }
     finally { state.busy = false; }
@@ -258,6 +315,7 @@
     document.addEventListener('click', e => {
       const c = e.target.closest('[data-checkin]'); if (c) checkIn(c.dataset.checkin);
       const n = e.target.closest('[data-nextvisit]'); if (n) advanceVisit(n.dataset.nextvisit);
+      const qa = e.target.closest('[data-queue-action]'); if (qa) updateQueueStatus(qa.dataset.queueId, qa.dataset.queueAction);
       const q = e.target.closest('[data-questionnaire-detail]'); if (q) showQuestionnaireDetail(q.dataset.questionnaireDetail, q);
     });
   }

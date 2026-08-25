@@ -101,7 +101,8 @@
     // BRUSHUP-8: bridge existing clinic UI check-in control to canonical visit.write.
     // No new permission key is introduced into MED-AUTH-001.
     if (currentPageName() === 'owner-ipad.html') await loadScript('ipad-permission-bridge.js');
-    await loadScript('clinic.js');
+    // BRUSHUP-9: cache-bust the clinic workflow runtime so queue controls are authoritative immediately after GitHub Pages deploy.
+    await loadScript('clinic.js?v=brushup9-1.0');
   }
 
   global.DPRO_MEDICAL_CLINIC_BOOT = bootstrap().catch(error => {
