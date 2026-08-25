@@ -44,7 +44,16 @@
   });
   function status(s) { return `<span class="status ${esc(s)}">${esc(displayStatusLabels[s] || '確認中')}</span>`; }
   function role() { return (state.context && state.context.role) || API.config.role || 'owner'; }
-  function hasPermission(permission) { return API.hasPermission(state.context || { role: role(), permissions: {} }, permission); }
+  const permissionAliases = Object.freeze({
+    'appointment.check_in': Object.freeze(['appointment.check_in','visit.write']),
+    'queue.update': Object.freeze(['queue.update','queue.write']),
+    'visit.update': Object.freeze(['visit.update','visit.write'])
+  });
+  function hasPermission(permission) {
+    const context = state.context || { role: role(), permissions: {} };
+    const candidates = permissionAliases[permission] || [permission];
+    return candidates.some(candidate => API.hasPermission(context, candidate));
+  }
   function feature(name) { return !!(state.context && state.context.features && state.context.features[name]); }
   function workflow(name, fallback) {
     const cfg = state.context && state.context.workflowConfig;
