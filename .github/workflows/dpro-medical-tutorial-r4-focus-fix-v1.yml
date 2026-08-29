@@ -1,0 +1,303 @@
+name: DPRO MEDICAL TUTORIAL R4 FOCUS RECOVERY FIX V1.0
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/dpro-medical-tutorial-r4-focus-fix-v1.yml"
+
+permissions:
+  contents: write
+
+env:
+  LIVE_URL: https://dpromstk2000-lab.github.io/dpro-medical-standard/medical-public-demo.html
+  LIVE_JS_URL: https://dpromstk2000-lab.github.io/dpro-medical-standard/medical-tutorial.js
+  R3_HEAD_LOCK: 5250f937733f314fac866d033214f5b6bf2a9fd3
+  R3_TREE_LOCK: 8250b763723b6c35821a95f077a1a2353330b787
+  R4_INITIAL_HEAD_LOCK: 431c5da90357c6a2d3bbe54a3a687ce0e9226b54
+  R4_INITIAL_TREE_LOCK: 8226dc1104fb74a52c74f3bd146874f35419f417
+  ORIGINAL_RUN_ID: "33262252866"
+
+jobs:
+  r4-focus-recovery-fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout newest main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Record newest source lock and enforce forward-only
+        shell: bash
+        run: |
+          echo "PRE_FIX_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "PRE_FIX_TREE=$(git rev-parse HEAD^{tree})" >> "$GITHUB_ENV"
+          git merge-base --is-ancestor "$R3_HEAD_LOCK" HEAD || { echo "HOLD: R3 PASS commit is not an ancestor of newest main"; exit 1; }
+          git merge-base --is-ancestor "$R4_INITIAL_HEAD_LOCK" HEAD || { echo "HOLD: initial R4 commit is not an ancestor of newest main"; exit 1; }
+          test -f medical-public-demo.html
+          test -f medical-tutorial.js
+          test -f .github/workflows/dpro-medical-tutorial-r3-r4-v1.yml
+          echo "Newest main: $(git rev-parse HEAD) / $(git rev-parse HEAD^{tree})"
+
+      - name: Patch only R4 Guide Escape focus recovery
+        shell: bash
+        run: |
+          python3 - <<'PY2'
+          from pathlib import Path
+          p=Path('medical-tutorial.js')
+          text=p.read_text(encoding='utf-8')
+          marker='R4 GUIDE FOCUS RECOVERY FIX V1.0'
+          if marker not in text:
+              old_open="function open(){build();ui.panel.hidden=false;setTimeout(()=>ui.close.focus({preventScroll:true}),0);return snapshot();}"
+              new_open="// R4 GUIDE FOCUS RECOVERY FIX V1.0: never leave Tutorial overlay open behind Guide Center.\n  function open(){build();if(T&&typeof T.close==='function')T.close(false);ui.panel.hidden=false;setTimeout(()=>ui.close.focus({preventScroll:true}),0);return snapshot();}"
+              old_esc="document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui&&!ui.panel.hidden){e.preventDefault();close();}},true);"
+              new_esc="document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui&&!ui.panel.hidden){e.preventDefault();e.stopImmediatePropagation();close();}},true);"
+              if text.count(old_open) != 1:
+                  raise SystemExit('HOLD: Guide open() patch point not exactly one')
+              if text.count(old_esc) != 1:
+                  raise SystemExit('HOLD: Guide Escape patch point not exactly one')
+              text=text.replace(old_open,new_open,1).replace(old_esc,new_esc,1)
+              p.write_text(text,encoding='utf-8')
+          check=p.read_text(encoding='utf-8')
+          assert marker in check
+          assert "T.close(false);ui.panel.hidden=false" in check
+          assert "e.stopImmediatePropagation();close();" in check
+          assert check.count("id:'medical-first10-") == 10
+          assert 'DPRO MEDICAL TUTORIAL STANDARD V1.1 / R4' in check
+          assert 'DPRO MEDICAL GUIDE CENTER STANDARD V1.1 / R4' in check
+          assert 'fetch(' not in check and 'XMLHttpRequest' not in check
+          print('R4 focus recovery static fix PASS')
+          PY2
+          node --check medical-tutorial.js
+
+      - name: Commit R4 focus recovery fix forward-only
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add medical-tutorial.js
+          if git diff --cached --quiet; then
+            echo "R4 focus recovery fix already present."
+          else
+            git commit -m "DPRO MEDICAL Tutorial R4 Guide focus recovery fix"
+            git push
+          fi
+          echo "R4_FIX_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "R4_FIX_TREE=$(git rev-parse HEAD^{tree})" >> "$GITHUB_ENV"
+
+      - name: Wait for fixed R4 public LIVE
+        shell: bash
+        run: |
+          ok=0
+          for i in $(seq 1 60); do
+            if curl -fsSL -H 'Cache-Control: no-cache' "$LIVE_JS_URL?qa=$(date +%s%N)" -o /tmp/live-r4-fix.js &&                grep -q 'DPRO MEDICAL TUTORIAL STANDARD V1.1 / R4' /tmp/live-r4-fix.js &&                grep -q 'DPRO MEDICAL GUIDE CENTER STANDARD V1.1 / R4' /tmp/live-r4-fix.js &&                grep -q 'R4 GUIDE FOCUS RECOVERY FIX V1.0' /tmp/live-r4-fix.js; then
+              ok=1; break
+            fi
+            sleep 5
+          done
+          test "$ok" = "1" || { echo "R4 HOLD: fixed public LIVE marker not updated"; exit 1; }
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Prepare full R3 revalidation and R4 LIVE QA
+        shell: bash
+        run: |
+          python3 - <<'PY2'
+          from pathlib import Path
+          import base64
+          q3="aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnOwppbXBvcnQgeyBjaHJvbWl1bSB9IGZyb20gJ3BsYXl3cmlnaHQnOwoKY29uc3QgVVJMID0gJ2h0dHBzOi8vZHByb21zdGsyMDAwLWxhYi5naXRodWIuaW8vZHByby1tZWRpY2FsLXN0YW5kYXJkL21lZGljYWwtcHVibGljLWRlbW8uaHRtbCc7CmNvbnN0IFZJRVdQT1JUUyA9IFsKICB7bmFtZTonMTQ0MHgxMDAwJyx3aWR0aDoxNDQwLGhlaWdodDoxMDAwfSwKICB7bmFtZTonMTAyNHg3NjgnLHdpZHRoOjEwMjQsaGVpZ2h0Ojc2OH0sCiAge25hbWU6JzM5MHg4NDQnLHdpZHRoOjM5MCxoZWlnaHQ6ODQ0LGhhc1RvdWNoOnRydWUsaXNNb2JpbGU6dHJ1ZX0sCiAge25hbWU6JzMyMHg3MjAnLHdpZHRoOjMyMCxoZWlnaHQ6NzIwLGhhc1RvdWNoOnRydWUsaXNNb2JpbGU6dHJ1ZX0KXTsKY29uc3QgRVhQRUNURURfSURTID0gWwogICdtZWRpY2FsLWZpcnN0MTAtMDEtc3RhcnQtdG91cicsJ21lZGljYWwtZmlyc3QxMC0wMi1wYXRpZW50LXRvdXInLCdtZWRpY2FsLWZpcnN0MTAtMDMtb3duZXItdG91cicsJ21lZGljYWwtZmlyc3QxMC0wNC1jb21wYXJlLXByZXNldHMnLCdtZWRpY2FsLWZpcnN0MTAtMDUtZXllLXByZXNldCcsCiAgJ21lZGljYWwtZmlyc3QxMC0wNi1wYXRpZW50LXJvbGUnLCdtZWRpY2FsLWZpcnN0MTAtMDctb3duZXItcm9sZScsJ21lZGljYWwtZmlyc3QxMC0wOC1pcGFkLXJvbGUnLCdtZWRpY2FsLWZpcnN0MTAtMDktc3RhZmYtcm9sZScsJ21lZGljYWwtZmlyc3QxMC0xMC1ocC1yb2xlJwpdOwpjb25zdCByZXN1bHRzID0ge3BoYXNlOidSM19SRVZBTElEQVRJT05fQUZURVJfUjRfRklYJyx1cmw6VVJMLHN0YXJ0ZWRBdDpuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCksdmlld3BvcnRzOnt9LGdsb2JhbDp7fSxwYXNzOmZhbHNlfTsKZnVuY3Rpb24gY2hlY2soY29uZCxtc2cpeyBpZighY29uZCkgdGhyb3cgbmV3IEVycm9yKG1zZyk7IH0KZnVuY3Rpb24gc2xlZXAobXMpeyByZXR1cm4gbmV3IFByb21pc2Uocj0+c2V0VGltZW91dChyLG1zKSk7IH0KCmFzeW5jIGZ1bmN0aW9uIHdhaXRGb3JMaXZlTWFya2VyKCl7CiAgY29uc3QgZGVhZGxpbmUgPSBEYXRlLm5vdygpKzI0MDAwMDsKICBsZXQgbGFzdD0nJzsKICB3aGlsZShEYXRlLm5vdygpPGRlYWRsaW5lKXsKICAgIHRyeXsKICAgICAgY29uc3Qgcj1hd2FpdCBmZXRjaChgaHR0cHM6Ly9kcHJvbXN0azIwMDAtbGFiLmdpdGh1Yi5pby9kcHJvLW1lZGljYWwtc3RhbmRhcmQvbWVkaWNhbC10dXRvcmlhbC5qcz9xYT0ke0RhdGUubm93KCl9YCx7aGVhZGVyczp7J2NhY2hlLWNvbnRyb2wnOiduby1jYWNoZSd9fSk7CiAgICAgIGxhc3Q9YXdhaXQgci50ZXh0KCk7CiAgICAgIGlmKHIub2sgJiYgbGFzdC5pbmNsdWRlcygnRFBSTyBNRURJQ0FMIFRVVE9SSUFMIFNUQU5EQVJEIFYxLjEgLyBSNCcpKSByZXR1cm4gdHJ1ZTsKICAgIH1jYXRjaHt9CiAgICBhd2FpdCBzbGVlcCg1MDAwKTsKICB9CiAgdGhyb3cgbmV3IEVycm9yKCdMSVZFX1I0X01BUktFUl9USU1FT1VUICcrbGFzdC5zbGljZSgwLDEwMCkpOwp9Cgphd2FpdCB3YWl0Rm9yTGl2ZU1hcmtlcigpOwpjb25zdCBicm93c2VyID0gYXdhaXQgY2hyb21pdW0ubGF1bmNoKHtoZWFkbGVzczp0cnVlfSk7CnRyeXsKICBmb3IgKGNvbnN0IHZwIG9mIFZJRVdQT1JUUyl7CiAgICBjb25zdCBjb250ZXh0ID0gYXdhaXQgYnJvd3Nlci5uZXdDb250ZXh0KHt2aWV3cG9ydDp7d2lkdGg6dnAud2lkdGgsaGVpZ2h0OnZwLmhlaWdodH0saGFzVG91Y2g6ISF2cC5oYXNUb3VjaCxpc01vYmlsZTohIXZwLmlzTW9iaWxlfSk7CiAgICBjb25zdCBwYWdlID0gYXdhaXQgY29udGV4dC5uZXdQYWdlKCk7CiAgICBjb25zdCBjb25zb2xlRXJyb3JzPVtdOyBjb25zdCBwYWdlRXJyb3JzPVtdOyBjb25zdCB1bnNhZmU9W107CiAgICBwYWdlLm9uKCdjb25zb2xlJyxtPT57aWYobS50eXBlKCk9PT0nZXJyb3InKSBjb25zb2xlRXJyb3JzLnB1c2gobS50ZXh0KCkpO30pOwogICAgcGFnZS5vbigncGFnZWVycm9yJyxlPT5wYWdlRXJyb3JzLnB1c2goU3RyaW5nKGUpKSk7CiAgICBwYWdlLm9uKCdyZXF1ZXN0JyxyZXE9Pntjb25zdCBtZXRob2Q9cmVxLm1ldGhvZCgpOyBpZighWydHRVQnLCdIRUFEJywnT1BUSU9OUyddLmluY2x1ZGVzKG1ldGhvZCkpIHVuc2FmZS5wdXNoKHttZXRob2QsdXJsOnJlcS51cmwoKX0pO30pOwogICAgY29uc3QgcmVjPXtjaGVja3M6e30sY29uc29sZUVycm9ycyxwYWdlRXJyb3JzLHVuc2FmZX07CiAgICByZXN1bHRzLnZpZXdwb3J0c1t2cC5uYW1lXT1yZWM7CiAgICBhd2FpdCBwYWdlLmdvdG8oVVJMLHt3YWl0VW50aWw6J25ldHdvcmtpZGxlJyx0aW1lb3V0OjEyMDAwMH0pOwogICAgYXdhaXQgcGFnZS53YWl0Rm9yRnVuY3Rpb24oKCk9PndpbmRvdy5EUFJPTWVkaWNhbFR1dG9yaWFsICYmIHdpbmRvdy5EUFJPTWVkaWNhbFR1dG9yaWFsLnN0ZXBzPy5sZW5ndGg9PT0xMCx7dGltZW91dDozMDAwMH0pOwogICAgY29uc3QgbWV0YT1hd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT4oe3ZlcnNpb246d2luZG93LkRQUk9NZWRpY2FsVHV0b3JpYWwudmVyc2lvbixpZHM6d2luZG93LkRQUk9NZWRpY2FsVHV0b3JpYWwuc3RlcHMubWFwKHM9PnMuaWQpLGNvdW50OndpbmRvdy5EUFJPTWVkaWNhbFR1dG9yaWFsLnN0ZXBzLmxlbmd0aH0pKTsKICAgIGNoZWNrKG1ldGEuY291bnQ9PT0xMCxgJHt2cC5uYW1lfSBGSVJTVDEwX0NPVU5UYCk7IGNoZWNrKEpTT04uc3RyaW5naWZ5KG1ldGEuaWRzKT09PUpTT04uc3RyaW5naWZ5KEVYUEVDVEVEX0lEUyksYCR7dnAubmFtZX0gRklSU1QxMF9JRFNgKTsKICAgIHJlYy5jaGVja3MuRklSU1QxMF9DT1VOVD0xMDsKCiAgICBmb3IobGV0IGk9MDtpPDEwO2krKyl7CiAgICAgIGNvbnN0IHM9YXdhaXQgcGFnZS5ldmFsdWF0ZShpPT53aW5kb3cuRFBST01lZGljYWxUdXRvcmlhbC5nb1RvKGkpLGkpOwogICAgICBhd2FpdCBwYWdlLndhaXRGb3JUaW1lb3V0KDgwKTsKICAgICAgY2hlY2socy5zdGVwPT09aSxgJHt2cC5uYW1lfSBzdGVwICR7aSsxfSBzdGF0ZWApOwogICAgICBjb25zdCByZXNvbHZlZD1hd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT4oe3N0YXRlOndpbmRvdy5EUFJPTWVkaWNhbFR1dG9yaWFsLnN0YXRlKCksaGlkZGVuOmRvY3VtZW50LnF1ZXJ5U2VsZWN0b3IoJy5kcHJvLXR1dG9yaWFsLWhpZ2hsaWdodCcpPy5oaWRkZW4sY2FyZEhpZGRlbjpkb2N1bWVudC5xdWVyeVNlbGVjdG9yKCcjZHByby10dXRvcmlhbC1jYXJkJyk/LmhpZGRlbn0pKTsKICAgICAgY2hlY2socmVzb2x2ZWQuc3RhdGUudGFyZ2V0U291cmNlIT09J21pc3NpbmcnLGAke3ZwLm5hbWV9IHN0ZXAgJHtpKzF9IHRhcmdldCBtaXNzaW5nYCk7CiAgICAgIGNoZWNrKHJlc29sdmVkLmhpZGRlbj09PWZhbHNlLGAke3ZwLm5hbWV9IHN0ZXAgJHtpKzF9IGhpZ2hsaWdodCBoaWRkZW5gKTsKICAgICAgY2hlY2socmVzb2x2ZWQuY2FyZEhpZGRlbj09PWZhbHNlLGAke3ZwLm5hbWV9IHN0ZXAgJHtpKzF9IGNhcmQgaGlkZGVuYCk7CiAgICB9CiAgICByZWMuY2hlY2tzLlNURVAxXzEwX1JFU09MVVRJT049J1BBU1MnOwoKICAgIGF3YWl0IHBhZ2UuZXZhbHVhdGUoKCk9PndpbmRvdy5EUFJPTWVkaWNhbFR1dG9yaWFsLnN0YXJ0KCkpOyBhd2FpdCBwYWdlLndhaXRGb3JUaW1lb3V0KDUwKTsKICAgIGxldCBzdD1hd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT53aW5kb3cuRFBST01lZGljYWxUdXRvcmlhbC5zdGF0ZSgpKTsgY2hlY2soc3Quc3RlcD09PTAmJnN0LnN0YXR1cz09PSdhY3RpdmUnLGAke3ZwLm5hbWV9IHN0YXJ0YCk7CiAgICBhd2FpdCBwYWdlLmNsaWNrKCdbZGF0YS1hY3Rpb249Im5leHQiXScpOyBzdD1hd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT53aW5kb3cuRFBST01lZGljYWxUdXRvcmlhbC5zdGF0ZSgpKTsgY2hlY2soc3Quc3RlcD09PTEsYCR7dnAubmFtZX0gbmV4dGApOwogICAgYXdhaXQgcGFnZS5jbGljaygnW2RhdGEtYWN0aW9uPSJiYWNrIl0nKTsgc3Q9YXdhaXQgcGFnZS5ldmFsdWF0ZSgoKT0+d2luZG93LkRQUk9NZWRpY2FsVHV0b3JpYWwuc3RhdGUoKSk7IGNoZWNrKHN0LnN0ZXA9PT0wLGAke3ZwLm5hbWV9IGJhY2tgKTsKICAgIGF3YWl0IHBhZ2UuY2xpY2soJ1tkYXRhLWFjdGlvbj0iY2xvc2UiXScpOyBjaGVjayhhd2FpdCBwYWdlLmlzSGlkZGVuKCcjZHByby10dXRvcmlhbC1jYXJkJyksYCR7dnAubmFtZX0gY2xvc2VgKTsKICAgIGF3YWl0IHBhZ2UuZXZhbHVhdGUoKCk9PndpbmRvdy5EUFJPTWVkaWNhbFR1dG9yaWFsLnJlc3VtZSgpKTsgYXdhaXQgcGFnZS53YWl0Rm9yVGltZW91dCgzMCk7IHN0PWF3YWl0IHBhZ2UuZXZhbHVhdGUoKCk9PndpbmRvdy5EUFJPTWVkaWNhbFR1dG9yaWFsLnN0YXRlKCkpOyBjaGVjayhzdC5zdGVwPT09MCYmc3Quc3RhdHVzPT09J2FjdGl2ZScsYCR7dnAubmFtZX0gcmVzdW1lYCk7CiAgICBhd2FpdCBwYWdlLmtleWJvYXJkLnByZXNzKCdFc2NhcGUnKTsgY2hlY2soYXdhaXQgcGFnZS5pc0hpZGRlbignI2Rwcm8tdHV0b3JpYWwtY2FyZCcpLGAke3ZwLm5hbWV9IGVzY2ApOwogICAgYXdhaXQgcGFnZS5ldmFsdWF0ZSgoKT0+d2luZG93LkRQUk9NZWRpY2FsVHV0b3JpYWwucmVzdW1lKCkpOyBhd2FpdCBwYWdlLmNsaWNrKCdbZGF0YS1hY3Rpb249InNraXAiXScpOyBzdD1hd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT53aW5kb3cuRFBST01lZGljYWxUdXRvcmlhbC5zdGF0ZSgpKTsgY2hlY2soc3Quc3RhdHVzPT09J3NraXBwZWQnLGAke3ZwLm5hbWV9IHNraXBgKTsKICAgIGF3YWl0IHBhZ2UuZXZhbHVhdGUoKCk9PndpbmRvdy5EUFJPTWVkaWNhbFR1dG9yaWFsLnJlcGxheSgpKTsgc3Q9YXdhaXQgcGFnZS5ldmFsdWF0ZSgoKT0+d2luZG93LkRQUk9NZWRpY2FsVHV0b3JpYWwuc3RhdGUoKSk7IGNoZWNrKHN0LnN0ZXA9PT0wJiZzdC5zdGF0dXM9PT0nYWN0aXZlJyxgJHt2cC5uYW1lfSByZXBsYXlgKTsKICAgIHJlYy5jaGVja3MuTkVYVF9CQUNLX0NMT1NFX0VTQ19TS0lQX1JFU1VNRV9SRVBMQVk9J1BBU1MnOwoKICAgIC8vIEtleWJvYXJkLW9ubHkgcHJvZ3Jlc3Npb24gKyB2aXNpYmxlL3JlY292ZXJhYmxlIGZvY3VzLgogICAgYXdhaXQgcGFnZS5ldmFsdWF0ZSgoKT0+d2luZG93LkRQUk9NZWRpY2FsVHV0b3JpYWwuc3RhcnQoKSk7IGF3YWl0IHBhZ2Uud2FpdEZvclRpbWVvdXQoNjApOwogICAgY29uc3QgZm9jdXNCZWZvcmU9YXdhaXQgcGFnZS5ldmFsdWF0ZSgoKT0+KHt0YWc6ZG9jdW1lbnQuYWN0aXZlRWxlbWVudD8udGFnTmFtZSxvdXRsaW5lOmdldENvbXB1dGVkU3R5bGUoZG9jdW1lbnQuYWN0aXZlRWxlbWVudCkub3V0bGluZVN0eWxlfSkpOwogICAgY2hlY2soZm9jdXNCZWZvcmUudGFnPT09J0JVVFRPTicgJiYgZm9jdXNCZWZvcmUub3V0bGluZSE9PSdub25lJyxgJHt2cC5uYW1lfSBmb2N1cyB2aXNpYmxlYCk7CiAgICBhd2FpdCBwYWdlLmtleWJvYXJkLnByZXNzKCdFbnRlcicpOyBzdD1hd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT53aW5kb3cuRFBST01lZGljYWxUdXRvcmlhbC5zdGF0ZSgpKTsgY2hlY2soc3Quc3RlcD09PTEsYCR7dnAubmFtZX0ga2V5Ym9hcmQgZW50ZXIgbmV4dGApOwogICAgYXdhaXQgcGFnZS5rZXlib2FyZC5wcmVzcygnRXNjYXBlJyk7CiAgICBjb25zdCBmb2N1c2VkTGF1bmNoZXI9YXdhaXQgcGFnZS5ldmFsdWF0ZSgoKT0+bmV3IFByb21pc2UocmVzb2x2ZT0+c2V0VGltZW91dCgoKT0+cmVzb2x2ZShkb2N1bWVudC5hY3RpdmVFbGVtZW50Py5pZCksMzApKSk7CiAgICBjaGVjayhmb2N1c2VkTGF1bmNoZXI9PT0nZHByby10dXRvcmlhbC1sYXVuY2hlcicsYCR7dnAubmFtZX0gZm9jdXMgcmVjb3ZlciBsYXVuY2hlcmApOwogICAgcmVjLmNoZWNrcy5LRVlCT0FSRF9PTkxZPSdQQVNTJzsgcmVjLmNoZWNrcy5GT0NVU19WSVNJQkxFX1JFQ09WRVJBQkxFPSdQQVNTJzsKCiAgICAvLyBQb2ludGVyIGRyYWcgLyBjbGFtcC4KICAgIGF3YWl0IHBhZ2UuZXZhbHVhdGUoKCk9PndpbmRvdy5EUFJPTWVkaWNhbFR1dG9yaWFsLnN0YXJ0KCkpOyBhd2FpdCBwYWdlLndhaXRGb3JUaW1lb3V0KDUwKTsKICAgIGNvbnN0IGJlZm9yZT1hd2FpdCBwYWdlLmxvY2F0b3IoJyNkcHJvLXR1dG9yaWFsLWNhcmQnKS5ib3VuZGluZ0JveCgpOwogICAgY29uc3QgaGFuZGxlPWF3YWl0IHBhZ2UubG9jYXRvcignLmRwcm8tdHV0b3JpYWwtZHJhZycpLmJvdW5kaW5nQm94KCk7CiAgICBjaGVjayhiZWZvcmUmJmhhbmRsZSxgJHt2cC5uYW1lfSBkcmFnIGJveGVzYCk7CiAgICBpZighdnAuaGFzVG91Y2gpewogICAgICBhd2FpdCBwYWdlLm1vdXNlLm1vdmUoaGFuZGxlLngrMjAsaGFuZGxlLnkrMTgpOyBhd2FpdCBwYWdlLm1vdXNlLmRvd24oKTsgYXdhaXQgcGFnZS5tb3VzZS5tb3ZlKE1hdGgubWF4KDIwLGhhbmRsZS54LTEzMCksTWF0aC5taW4odnAuaGVpZ2h0LTIwLGhhbmRsZS55KzE1MCkse3N0ZXBzOjZ9KTsgYXdhaXQgcGFnZS5tb3VzZS51cCgpOwogICAgICByZWMuY2hlY2tzLk1PVVNFX1BPSU5URVJfRFJBRz0nUEFTUyc7CiAgICB9IGVsc2UgewogICAgICBhd2FpdCBwYWdlLmxvY2F0b3IoJy5kcHJvLXR1dG9yaWFsLWRyYWcnKS5kaXNwYXRjaEV2ZW50KCdwb2ludGVyZG93bicse3BvaW50ZXJJZDo3Nyxwb2ludGVyVHlwZTondG91Y2gnLGJ1dHRvbjowLGNsaWVudFg6aGFuZGxlLngrMjAsY2xpZW50WTpoYW5kbGUueSsxOH0pOwogICAgICBhd2FpdCBwYWdlLmxvY2F0b3IoJy5kcHJvLXR1dG9yaWFsLWRyYWcnKS5kaXNwYXRjaEV2ZW50KCdwb2ludGVybW92ZScse3BvaW50ZXJJZDo3Nyxwb2ludGVyVHlwZTondG91Y2gnLGJ1dHRvbjowLGNsaWVudFg6dnAud2lkdGgrNDAwLGNsaWVudFk6dnAuaGVpZ2h0KzQwMH0pOwogICAgICBhd2FpdCBwYWdlLmxvY2F0b3IoJy5kcHJvLXR1dG9yaWFsLWRyYWcnKS5kaXNwYXRjaEV2ZW50KCdwb2ludGVydXAnLHtwb2ludGVySWQ6NzcscG9pbnRlclR5cGU6J3RvdWNoJyxidXR0b246MCxjbGllbnRYOnZwLndpZHRoKzQwMCxjbGllbnRZOnZwLmhlaWdodCs0MDB9KTsKICAgICAgcmVjLmNoZWNrcy5UT1VDSF9QT0lOVEVSX0RSQUc9J1BBU1MnOwogICAgfQogICAgYXdhaXQgcGFnZS53YWl0Rm9yVGltZW91dCgzMCk7CiAgICBjb25zdCBhZnRlcj1hd2FpdCBwYWdlLmxvY2F0b3IoJyNkcHJvLXR1dG9yaWFsLWNhcmQnKS5ib3VuZGluZ0JveCgpOyBjaGVjayhhZnRlcixgJHt2cC5uYW1lfSBhZnRlciBkcmFnYCk7CiAgICBjaGVjayhhZnRlci54Pj03ICYmIGFmdGVyLnk+PTcgJiYgYWZ0ZXIueCthZnRlci53aWR0aDw9dnAud2lkdGgtNysxICYmIGFmdGVyLnkrYWZ0ZXIuaGVpZ2h0PD12cC5oZWlnaHQtNysxLGAke3ZwLm5hbWV9IHZpZXdwb3J0IGNsYW1wYCk7CiAgICByZWMuY2hlY2tzLlZJRVdQT1JUX0NMQU1QPSdQQVNTJzsKCiAgICBpZih2cC53aWR0aDw9MzkwKXsKICAgICAgY29uc3Qgd2lkdGhzPWF3YWl0IHBhZ2UuZXZhbHVhdGUoKCk9Pih7aW5uZXJXaWR0aDp3aW5kb3cuaW5uZXJXaWR0aCxkb2N1bWVudEVsZW1lbnRTY3JvbGxXaWR0aDpkb2N1bWVudC5kb2N1bWVudEVsZW1lbnQuc2Nyb2xsV2lkdGgsYm9keVNjcm9sbFdpZHRoOmRvY3VtZW50LmJvZHkuc2Nyb2xsV2lkdGh9KSk7CiAgICAgIHJlYy53aWR0aHM9d2lkdGhzOwogICAgICBjaGVjayh3aWR0aHMuZG9jdW1lbnRFbGVtZW50U2Nyb2xsV2lkdGg8PXdpZHRocy5pbm5lcldpZHRoICYmIHdpZHRocy5ib2R5U2Nyb2xsV2lkdGg8PXdpZHRocy5pbm5lcldpZHRoLGAke3ZwLm5hbWV9IGhvcml6b250YWwgb3ZlcmZsb3dgKTsKICAgICAgcmVjLmNoZWNrcy5IT1JJWk9OVEFMX09WRVJGTE9XPTA7CiAgICB9CiAgICBjaGVjayhwYWdlRXJyb3JzLmxlbmd0aD09PTAsYCR7dnAubmFtZX0gcGFnZWVycm9yICR7cGFnZUVycm9ycy5qb2luKCd8Jyl9YCk7CiAgICBjaGVjayhjb25zb2xlRXJyb3JzLmxlbmd0aD09PTAsYCR7dnAubmFtZX0gY29uc29sZWVycm9yICR7Y29uc29sZUVycm9ycy5qb2luKCd8Jyl9YCk7CiAgICBjaGVjayh1bnNhZmUubGVuZ3RoPT09MCxgJHt2cC5uYW1lfSB1bnNhZmUgd3JpdGVzICR7SlNPTi5zdHJpbmdpZnkodW5zYWZlKX1gKTsKICAgIHJlYy5jaGVja3MuUEFHRUVSUk9SPTA7IHJlYy5jaGVja3MuQ09OU09MRV9FUlJPUj0wOyByZWMuY2hlY2tzLlVOU0FGRV9XUklURV9SRVFVRVNUPTA7IHJlYy5jaGVja3MuQlVTSU5FU1NfTVVUQVRJT049MDsKICAgIGF3YWl0IGNvbnRleHQuY2xvc2UoKTsKICB9CiAgcmVzdWx0cy5nbG9iYWwuQ1JPU1NfUEFHRV9SRVNVTUU9J04vQV9TQU1FX1JPVVRFJzsKICByZXN1bHRzLmdsb2JhbC5CVVNJTkVTU19NVVRBVElPTj0wOwogIHJlc3VsdHMucGFzcz10cnVlOwp9IGNhdGNoIChlKXsgcmVzdWx0cy5lcnJvcj1TdHJpbmcoZT8uc3RhY2t8fGUpOyByZXN1bHRzLnBhc3M9ZmFsc2U7IHByb2Nlc3MuZXhpdENvZGU9MTsgfQpmaW5hbGx5IHsgYXdhaXQgYnJvd3Nlci5jbG9zZSgpOyByZXN1bHRzLmZpbmlzaGVkQXQ9bmV3IERhdGUoKS50b0lTT1N0cmluZygpOyBmcy53cml0ZUZpbGVTeW5jKCd0dXRvcmlhbC1xYS1yZXN1bHRzLmpzb24nLEpTT04uc3RyaW5naWZ5KHJlc3VsdHMsbnVsbCwyKSk7IGNvbnNvbGUubG9nKEpTT04uc3RyaW5naWZ5KHJlc3VsdHMsbnVsbCwyKSk7IH0K"
+          q4="aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnOwppbXBvcnQgeyBjaHJvbWl1bSB9IGZyb20gJ3BsYXl3cmlnaHQnOwoKY29uc3QgVVJMPSdodHRwczovL2Rwcm9tc3RrMjAwMC1sYWIuZ2l0aHViLmlvL2Rwcm8tbWVkaWNhbC1zdGFuZGFyZC9tZWRpY2FsLXB1YmxpYy1kZW1vLmh0bWwnOwpjb25zdCBWSUVXUE9SVFM9W3tuYW1lOicxNDQweDEwMDAnLHdpZHRoOjE0NDAsaGVpZ2h0OjEwMDB9LHtuYW1lOicxMDI0eDc2OCcsd2lkdGg6MTAyNCxoZWlnaHQ6NzY4fSx7bmFtZTonMzkweDg0NCcsd2lkdGg6MzkwLGhlaWdodDo4NDQsaGFzVG91Y2g6dHJ1ZSxpc01vYmlsZTp0cnVlfSx7bmFtZTonMzIweDcyMCcsd2lkdGg6MzIwLGhlaWdodDo3MjAsaGFzVG91Y2g6dHJ1ZSxpc01vYmlsZTp0cnVlfV07CmNvbnN0IEVYUEVDVEVEPVsnbWVkaWNhbC1maXJzdDEwLTAxLXN0YXJ0LXRvdXInLCdtZWRpY2FsLWZpcnN0MTAtMDItcGF0aWVudC10b3VyJywnbWVkaWNhbC1maXJzdDEwLTAzLW93bmVyLXRvdXInLCdtZWRpY2FsLWZpcnN0MTAtMDQtY29tcGFyZS1wcmVzZXRzJywnbWVkaWNhbC1maXJzdDEwLTA1LWV5ZS1wcmVzZXQnLCdtZWRpY2FsLWZpcnN0MTAtMDYtcGF0aWVudC1yb2xlJywnbWVkaWNhbC1maXJzdDEwLTA3LW93bmVyLXJvbGUnLCdtZWRpY2FsLWZpcnN0MTAtMDgtaXBhZC1yb2xlJywnbWVkaWNhbC1maXJzdDEwLTA5LXN0YWZmLXJvbGUnLCdtZWRpY2FsLWZpcnN0MTAtMTAtaHAtcm9sZSddOwpjb25zdCByZXN1bHRzPXtwaGFzZTonUjQnLHVybDpVUkwsc3RhcnRlZEF0Om5ldyBEYXRlKCkudG9JU09TdHJpbmcoKSx2aWV3cG9ydHM6e30sZ2xvYmFsOnt9LHBhc3M6ZmFsc2V9Owpjb25zdCBzbGVlcD1tcz0+bmV3IFByb21pc2Uocj0+c2V0VGltZW91dChyLG1zKSk7CmZ1bmN0aW9uIGNoZWNrKGMsbSl7aWYoIWMpdGhyb3cgbmV3IEVycm9yKG0pO30KYXN5bmMgZnVuY3Rpb24gd2FpdE1hcmtlcigpe2NvbnN0IGVuZD1EYXRlLm5vdygpKzI0MDAwMDt3aGlsZShEYXRlLm5vdygpPGVuZCl7dHJ5e2NvbnN0IHI9YXdhaXQgZmV0Y2goYGh0dHBzOi8vZHByb21zdGsyMDAwLWxhYi5naXRodWIuaW8vZHByby1tZWRpY2FsLXN0YW5kYXJkL21lZGljYWwtdHV0b3JpYWwuanM/cWE9JHtEYXRlLm5vdygpfWAse2hlYWRlcnM6eydjYWNoZS1jb250cm9sJzonbm8tY2FjaGUnfX0pO2NvbnN0IHQ9YXdhaXQgci50ZXh0KCk7aWYoci5vayYmdC5pbmNsdWRlcygnRFBSTyBNRURJQ0FMIFRVVE9SSUFMIFNUQU5EQVJEIFYxLjEgLyBSNCcpJiZ0LmluY2x1ZGVzKCdEUFJPIE1FRElDQUwgR1VJREUgQ0VOVEVSIFNUQU5EQVJEIFYxLjEgLyBSNCcpKXJldHVybjt9Y2F0Y2h7fWF3YWl0IHNsZWVwKDUwMDApO310aHJvdyBuZXcgRXJyb3IoJ0xJVkVfUjRfTUFSS0VSX1RJTUVPVVQnKTt9CmF3YWl0IHdhaXRNYXJrZXIoKTsKY29uc3QgYnJvd3Nlcj1hd2FpdCBjaHJvbWl1bS5sYXVuY2goe2hlYWRsZXNzOnRydWV9KTsKdHJ5ewogZm9yKGNvbnN0IHZwIG9mIFZJRVdQT1JUUyl7CiAgY29uc3QgY29udGV4dD1hd2FpdCBicm93c2VyLm5ld0NvbnRleHQoe3ZpZXdwb3J0Ont3aWR0aDp2cC53aWR0aCxoZWlnaHQ6dnAuaGVpZ2h0fSxoYXNUb3VjaDohIXZwLmhhc1RvdWNoLGlzTW9iaWxlOiEhdnAuaXNNb2JpbGV9KTsKICBjb25zdCBwYWdlPWF3YWl0IGNvbnRleHQubmV3UGFnZSgpO2NvbnN0IGNlPVtdLHBlPVtdLHVuc2FmZT1bXTtwYWdlLm9uKCdjb25zb2xlJyxtPT57aWYobS50eXBlKCk9PT0nZXJyb3InKWNlLnB1c2gobS50ZXh0KCkpfSk7cGFnZS5vbigncGFnZWVycm9yJyxlPT5wZS5wdXNoKFN0cmluZyhlKSkpO3BhZ2Uub24oJ3JlcXVlc3QnLHI9PntpZighWydHRVQnLCdIRUFEJywnT1BUSU9OUyddLmluY2x1ZGVzKHIubWV0aG9kKCkpKXVuc2FmZS5wdXNoKHttZXRob2Q6ci5tZXRob2QoKSx1cmw6ci51cmwoKX0pfSk7CiAgY29uc3QgcmVjPXtjaGVja3M6e30sY29uc29sZUVycm9yczpjZSxwYWdlRXJyb3JzOnBlLHVuc2FmZX07cmVzdWx0cy52aWV3cG9ydHNbdnAubmFtZV09cmVjOwogIGF3YWl0IHBhZ2UuZ290byhVUkwse3dhaXRVbnRpbDonbmV0d29ya2lkbGUnLHRpbWVvdXQ6MTIwMDAwfSk7CiAgYXdhaXQgcGFnZS53YWl0Rm9yRnVuY3Rpb24oKCk9PndpbmRvdy5EUFJPTWVkaWNhbFR1dG9yaWFsPy5zdGVwcz8ubGVuZ3RoPT09MTAmJndpbmRvdy5EUFJPTWVkaWNhbEd1aWRlQ2VudGVyLHt0aW1lb3V0OjMwMDAwfSk7CiAgY29uc3QgbWV0YT1hd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT4oe3RpZHM6RFBST01lZGljYWxUdXRvcmlhbC5zdGVwcy5tYXAocz0+cy5pZCksZ2lkczpEUFJPTWVkaWNhbEd1aWRlQ2VudGVyLnN0ZXBzLm1hcChzPT5zLmlkKSxnYzpEUFJPTWVkaWNhbEd1aWRlQ2VudGVyLmNvdW50KCksaXRlbXM6ZG9jdW1lbnQucXVlcnlTZWxlY3RvckFsbCgnLmRwcm8tZ3VpZGUtaXRlbScpLmxlbmd0aCxwcmVzZXRzOmRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoJy5wcmVzZXQtY2FyZCcpLmxlbmd0aCxyb2xlczpkb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCcucm9sZS1jYXJkJykubGVuZ3RofSkpOwogIGNoZWNrKG1ldGEuZ2M9PT0xMCYmbWV0YS5pdGVtcz09PTEwLGAke3ZwLm5hbWV9IEdVSURFX0NPVU5UYCk7Y2hlY2soSlNPTi5zdHJpbmdpZnkobWV0YS50aWRzKT09PUpTT04uc3RyaW5naWZ5KEVYUEVDVEVEKSxgJHt2cC5uYW1lfSB0dXRvcmlhbCBpZHNgKTtjaGVjayhKU09OLnN0cmluZ2lmeShtZXRhLmdpZHMpPT09SlNPTi5zdHJpbmdpZnkoRVhQRUNURUQpLGAke3ZwLm5hbWV9IGd1aWRlIGFsaWdubWVudGApO2NoZWNrKG1ldGEucHJlc2V0cz09PTYmJm1ldGEucm9sZXM9PT01LGAke3ZwLm5hbWV9IHByb2R1Y3QgcmVncmVzc2lvbiBjb3VudHNgKTsKICByZWMuY2hlY2tzLkdVSURFX0NPVU5UPTEwO3JlYy5jaGVja3MuR1VJREVfVFVUT1JJQUxfQUxJR05NRU5UPSdQQVNTJztyZWMuY2hlY2tzLlBST0RVQ1RfUkVHUkVTU0lPTj0wOwoKICBhd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT5EUFJPTWVkaWNhbEd1aWRlQ2VudGVyLm9wZW4oKSk7YXdhaXQgcGFnZS53YWl0Rm9yVGltZW91dCgzMCk7CiAgY29uc3QgZj1hd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT4oe2lkOmRvY3VtZW50LmFjdGl2ZUVsZW1lbnQ/LmdldEF0dHJpYnV0ZSgnZGF0YS1ndWlkZS1jbG9zZScpIT09bnVsbCxvdXRsaW5lOmdldENvbXB1dGVkU3R5bGUoZG9jdW1lbnQuYWN0aXZlRWxlbWVudCkub3V0bGluZVN0eWxlfSkpO2NoZWNrKGYuaWQmJmYub3V0bGluZSE9PSdub25lJyxgJHt2cC5uYW1lfSBndWlkZSBmb2N1c2ApOwogIGF3YWl0IHBhZ2UuY2xpY2soJ1tkYXRhLWd1aWRlLXN0YXJ0XScpO2xldCBzdD1hd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT5EUFJPTWVkaWNhbFR1dG9yaWFsLnN0YXRlKCkpO2NoZWNrKHN0LnN0ZXA9PT0wJiZzdC5zdGF0dXM9PT0nYWN0aXZlJyxgJHt2cC5uYW1lfSBndWlkZSBzdGFydGApOwogIGF3YWl0IHBhZ2UuZXZhbHVhdGUoKCk9PkRQUk9NZWRpY2FsVHV0b3JpYWwuZ29UbygzKSk7YXdhaXQgcGFnZS5ldmFsdWF0ZSgoKT0+RFBST01lZGljYWxUdXRvcmlhbC5jbG9zZSgpKTthd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT5EUFJPTWVkaWNhbEd1aWRlQ2VudGVyLm9wZW4oKSk7YXdhaXQgcGFnZS5jbGljaygnW2RhdGEtZ3VpZGUtcmVzdW1lXScpO3N0PWF3YWl0IHBhZ2UuZXZhbHVhdGUoKCk9PkRQUk9NZWRpY2FsVHV0b3JpYWwuc3RhdGUoKSk7Y2hlY2soc3Quc3RlcD09PTMmJnN0LnN0YXR1cz09PSdhY3RpdmUnLGAke3ZwLm5hbWV9IGd1aWRlIHJlc3VtZSBzYW1lIHN0ZXBgKTsKICBhd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT5EUFJPTWVkaWNhbFR1dG9yaWFsLnNraXAoKSk7YXdhaXQgcGFnZS5ldmFsdWF0ZSgoKT0+RFBST01lZGljYWxHdWlkZUNlbnRlci5vcGVuKCkpO2F3YWl0IHBhZ2UuY2xpY2soJ1tkYXRhLWd1aWRlLXJlcGxheV0nKTtzdD1hd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT5EUFJPTWVkaWNhbFR1dG9yaWFsLnN0YXRlKCkpO2NoZWNrKHN0LnN0ZXA9PT0wJiZzdC5zdGF0dXM9PT0nYWN0aXZlJyxgJHt2cC5uYW1lfSBndWlkZSByZXBsYXlgKTsKICByZWMuY2hlY2tzLlNUQVJUPSdQQVNTJztyZWMuY2hlY2tzLlJFU1VNRT0nUEFTUyc7cmVjLmNoZWNrcy5SRVBMQVk9J1BBU1MnO3JlYy5jaGVja3MuS0VZQk9BUkRfRk9DVVM9J1BBU1MnOwoKICBmb3IobGV0IGk9MDtpPDEwO2krKyl7Y29uc3Qgcz1hd2FpdCBwYWdlLmV2YWx1YXRlKGk9PkRQUk9NZWRpY2FsVHV0b3JpYWwuZ29UbyhpKSxpKTthd2FpdCBwYWdlLndhaXRGb3JUaW1lb3V0KDUwKTtjaGVjayhzLnN0ZXA9PT1pJiZzLnRhcmdldFNvdXJjZSE9PSdtaXNzaW5nJyxgJHt2cC5uYW1lfSBzdGVwICR7aSsxfWApO30KICByZWMuY2hlY2tzLlNURVAxXzEwX1JFU09MVVRJT049J1BBU1MnOwoKICBhd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT5EUFJPTWVkaWNhbEd1aWRlQ2VudGVyLm9wZW4oKSk7YXdhaXQgcGFnZS5rZXlib2FyZC5wcmVzcygnRXNjYXBlJyk7Y29uc3QgZm9jdXNHdWlkZT1hd2FpdCBwYWdlLmV2YWx1YXRlKCgpPT5uZXcgUHJvbWlzZShyPT5zZXRUaW1lb3V0KCgpPT5yKGRvY3VtZW50LmFjdGl2ZUVsZW1lbnQ/LmlkKSwzMCkpKTtjaGVjayhmb2N1c0d1aWRlPT09J2Rwcm8tZ3VpZGUtbGF1bmNoZXInLGAke3ZwLm5hbWV9IGd1aWRlIGVzY2FwZSBmb2N1cyByZWNvdmVyeWApOwoKICBpZih2cC53aWR0aDw9MzkwKXtjb25zdCB3PWF3YWl0IHBhZ2UuZXZhbHVhdGUoKCk9Pih7aW5uZXJXaWR0aCxkb2N1bWVudEVsZW1lbnRTY3JvbGxXaWR0aDpkb2N1bWVudC5kb2N1bWVudEVsZW1lbnQuc2Nyb2xsV2lkdGgsYm9keVNjcm9sbFdpZHRoOmRvY3VtZW50LmJvZHkuc2Nyb2xsV2lkdGh9KSk7cmVjLndpZHRocz13O2NoZWNrKHcuZG9jdW1lbnRFbGVtZW50U2Nyb2xsV2lkdGg8PXcuaW5uZXJXaWR0aCYmdy5ib2R5U2Nyb2xsV2lkdGg8PXcuaW5uZXJXaWR0aCxgJHt2cC5uYW1lfSBvdmVyZmxvd2ApO3JlYy5jaGVja3MuSE9SSVpPTlRBTF9PVkVSRkxPVz0wO30KICBjaGVjayhwZS5sZW5ndGg9PT0wLGAke3ZwLm5hbWV9IHBhZ2UgZXJyb3JzICR7cGV9YCk7Y2hlY2soY2UubGVuZ3RoPT09MCxgJHt2cC5uYW1lfSBjb25zb2xlIGVycm9ycyAke2NlfWApO2NoZWNrKHVuc2FmZS5sZW5ndGg9PT0wLGAke3ZwLm5hbWV9IHVuc2FmZSB3cml0ZXMgJHtKU09OLnN0cmluZ2lmeSh1bnNhZmUpfWApOwogIHJlYy5jaGVja3MuUEFHRUVSUk9SPTA7cmVjLmNoZWNrcy5DT05TT0xFX0VSUk9SPTA7cmVjLmNoZWNrcy5VTlNBRkVfV1JJVEVfUkVRVUVTVD0wO3JlYy5jaGVja3MuQlVTSU5FU1NfTVVUQVRJT049MDsKICBhd2FpdCBjb250ZXh0LmNsb3NlKCk7CiB9CiByZXN1bHRzLmdsb2JhbC5HVUlERV9DT1VOVD0xMDtyZXN1bHRzLmdsb2JhbC5GSVJTVDEwX0NPVU5UPTEwO3Jlc3VsdHMuZ2xvYmFsLkJVU0lORVNTX01VVEFUSU9OPTA7cmVzdWx0cy5wYXNzPXRydWU7Cn1jYXRjaChlKXtyZXN1bHRzLmVycm9yPVN0cmluZyhlPy5zdGFja3x8ZSk7cmVzdWx0cy5wYXNzPWZhbHNlO3Byb2Nlc3MuZXhpdENvZGU9MTt9ZmluYWxseXthd2FpdCBicm93c2VyLmNsb3NlKCk7cmVzdWx0cy5maW5pc2hlZEF0PW5ldyBEYXRlKCkudG9JU09TdHJpbmcoKTtmcy53cml0ZUZpbGVTeW5jKCdyNC1xYS1yZXN1bHRzLmpzb24nLEpTT04uc3RyaW5naWZ5KHJlc3VsdHMsbnVsbCwyKSk7Y29uc29sZS5sb2coSlNPTi5zdHJpbmdpZnkocmVzdWx0cyxudWxsLDIpKTt9Cg=="
+          Path('qa-r3-revalidation.mjs').write_bytes(base64.b64decode(q3))
+          Path('qa-r4.mjs').write_bytes(base64.b64decode(q4))
+          PY2
+          node --check qa-r3-revalidation.mjs
+          node --check qa-r4.mjs
+
+      - name: Revalidate R3 exact four-width gates on fixed R4
+        shell: bash
+        run: |
+          node qa-r3-revalidation.mjs
+          cp tutorial-qa-results.json R3_QA_EVIDENCE.json
+          python3 - <<'PY2'
+          import json
+          x=json.load(open('R3_QA_EVIDENCE.json',encoding='utf-8'))
+          assert x['pass'] is True
+          assert x['global']['BUSINESS_MUTATION'] == 0
+          assert len(x['viewports']) == 4
+          print('R3 REVALIDATION FULL PASS')
+          PY2
+
+      - name: R4 exact four-width public LIVE QA after focus fix
+        shell: bash
+        run: |
+          node qa-r4.mjs
+          cp r4-qa-results.json R4_QA_EVIDENCE.json
+          python3 - <<'PY2'
+          import json
+          x=json.load(open('R4_QA_EVIDENCE.json',encoding='utf-8'))
+          assert x['pass'] is True
+          assert x['global']['GUIDE_COUNT'] == 10
+          assert x['global']['FIRST10_COUNT'] == 10
+          assert x['global']['BUSINESS_MUTATION'] == 0
+          assert len(x['viewports']) == 4
+          for name in ('1440x1000','1024x768','390x844','320x720'):
+              assert name in x['viewports']
+          print('R4 FULL PASS AFTER FOCUS RECOVERY FIX')
+          PY2
+
+      - name: Remove temporary MEDICAL R3-R4 workflows after full PASS
+        shell: bash
+        run: |
+          git rm -f .github/workflows/dpro-medical-tutorial-r3-r4-v1.yml .github/workflows/dpro-medical-tutorial-r4-focus-fix-v1.yml
+          git commit -m "Remove temporary MEDICAL R3-R4 workflows [skip ci]"
+          git push
+          echo "FINAL_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "FINAL_TREE=$(git rev-parse HEAD^{tree})" >> "$GITHUB_ENV"
+
+      - name: Build R4 CENTRAL RETURN ZIP
+        shell: bash
+        run: |
+          mkdir -p central_return
+          cat > central_return/00_START_HERE.txt <<EOF2
+          DPRO TUTORIAL BATCH-10 / MEDICAL / R4 CENTRAL RETURN
+          VERSION V1.0 / 2026-08-30 JST
+          R2_CENTRAL=ACCEPTED
+          R3=PASS
+          R4=PASS
+          FIRST10_COUNT=10
+          GUIDE_COUNT=10
+          BUSINESS_MUTATION=0
+          FORWARD_ONLY=PASS
+          R5=NOT_STARTED_NOT_AUTHORIZED
+          R6=NOT_STARTED_NOT_AUTHORIZED
+          R7=NOT_AUTHORIZED_NOT_EXECUTED
+          FINAL_LOCK=CENTRAL_DECISION_ONLY
+          EOF2
+          sed -i 's/^          //' central_return/00_START_HERE.txt
+
+          cat > central_return/STATUS.txt <<EOF2
+          SYSTEM=MEDICAL
+          BATCH=10
+          R2_CENTRAL=ACCEPTED
+          R3_ORIGINAL_RUN_ID=$ORIGINAL_RUN_ID
+          R3_ORIGINAL_QA=PASS
+          R3_REVALIDATION_AFTER_R4_FIX=PASS
+          R3=PASS
+          R4_INITIAL_QA=HOLD_GUIDE_ESCAPE_FOCUS_RECOVERY
+          R4_FOCUS_RECOVERY_FIX=PASS
+          R4=PASS
+          FIRST10_COUNT=10
+          GUIDE_COUNT=10
+          GUIDE_TUTORIAL_ALIGNMENT=PASS
+          BUSINESS_MUTATION=0
+          FORWARD_ONLY=PASS
+          R5=NOT_STARTED_NOT_AUTHORIZED
+          R6=NOT_STARTED_NOT_AUTHORIZED
+          R7=NOT_AUTHORIZED_NOT_EXECUTED
+          FINAL_LOCK=CENTRAL_DECISION_ONLY
+          EOF2
+          sed -i 's/^          //' central_return/STATUS.txt
+
+          cat > central_return/SOURCE_LOCK_R4.txt <<EOF2
+          REPOSITORY=https://github.com/dpromstk2000-lab/dpro-medical-standard
+          R2_ACCEPTED_HEAD=7753ed489e991c12f73b8a217ac070375f59f4af
+          PRE_R3_HEAD=1780808bc99b1f9c971ad80b052e3ca629f9ceff
+          PRE_R3_TREE=db375fe744fc06c23076e4101bc34930aebc342d
+          R3_HEAD=$R3_HEAD_LOCK
+          R3_TREE=$R3_TREE_LOCK
+          R4_INITIAL_HEAD=$R4_INITIAL_HEAD_LOCK
+          R4_INITIAL_TREE=$R4_INITIAL_TREE_LOCK
+          PRE_FIX_HEAD=$PRE_FIX_HEAD
+          PRE_FIX_TREE=$PRE_FIX_TREE
+          R4_FIX_HEAD=$R4_FIX_HEAD
+          R4_FIX_TREE=$R4_FIX_TREE
+          FINAL_HEAD=$FINAL_HEAD
+          FINAL_TREE=$FINAL_TREE
+          FORWARD_ONLY=PASS
+          RESET_REVERT_FORCE_PUSH=0
+          EOF2
+          sed -i 's/^          //' central_return/SOURCE_LOCK_R4.txt
+
+          cat > central_return/R2_ACCEPTED_CONTRACT.txt <<'EOF2'
+          R2_CENTRAL=ACCEPTED
+          FIRST10_COUNT=10
+          FIRST10_UNIQUE_IDS=10
+          ROUTE=/medical-public-demo.html
+          SAFE_QUERY_PARAMETERS=NONE
+          CROSS_PAGE=NO
+          BUSINESS_MUTATION_DESIGN=0
+          Accepted First10 IDs/orders/selectors/fallbacks preserved exactly from R2 CENTRAL acceptance.
+          EOF2
+          sed -i 's/^          //' central_return/R2_ACCEPTED_CONTRACT.txt
+
+          cat > central_return/R3_CHANGED_FILES.txt <<'EOF2'
+          medical-public-demo.html
+          medical-tutorial.js
+          R3 changes are Tutorial-only: loader + Tutorial runtime.
+          Original R3 exact four-width LIVE QA PASS in workflow run 33262252866.
+          R3 gates were revalidated after the R4 focus recovery fix and remained PASS.
+          No Worker/Supabase/DB/API/Auth/Role/Permission/Feature Flag/Product Site change.
+          EOF2
+          sed -i 's/^          //' central_return/R3_CHANGED_FILES.txt
+          cp R3_QA_EVIDENCE.json central_return/R3_QA_EVIDENCE.json
+
+          cat > central_return/R4_CHANGED_FILES.txt <<'EOF2'
+          medical-tutorial.js
+          Initial R4 added Guide Center over the same First10 array and same Tutorial state/storage.
+          Initial R4 LIVE QA HOLD was limited to Guide Escape focus recovery at 1440x1000.
+          Forward-only focus fix: opening Guide closes the Tutorial overlay without changing Tutorial state; Guide Escape owns the event and restores focus to the Guide launcher.
+          Full R4 exact four-width LIVE QA PASS after the fix.
+          EOF2
+          sed -i 's/^          //' central_return/R4_CHANGED_FILES.txt
+          cp R4_QA_EVIDENCE.json central_return/R4_QA_EVIDENCE.json
+
+          cat > central_return/PROTECTED_BOUNDARIES.txt <<'EOF2'
+          Worker change=0
+          Supabase/DB change=0
+          API contract change=0
+          Auth change=0
+          Role/Permission change=0
+          Feature Flag change=0
+          Product Site change=0
+          Real patient/health/appointment/queue/visit/treatment data used=0
+          Unsafe write request during Tutorial/Guide QA=0
+          Business mutation=0
+          BRUSHUP-7/8/9/10 reopened=0
+          BRUSHUP-6 external LINE HOLD unchanged/separate
+          EOF2
+          sed -i 's/^          //' central_return/PROTECTED_BOUNDARIES.txt
+
+          cat > central_return/NEXT_ACTION.txt <<'EOF2'
+          1. Upload DPRO_TUTORIAL_BATCH10_MEDICAL_R4_CENTRAL_RETURN_V1.0_20260830.zip to DPRO TUTORIAL CENTRAL.
+          2. STOP in MEDICAL child chat.
+          3. Do not start R5/R6/R7. FINAL LOCK is CENTRAL decision only.
+          EOF2
+          sed -i 's/^          //' central_return/NEXT_ACTION.txt
+
+          (cd central_return && sha256sum 00_START_HERE.txt STATUS.txt SOURCE_LOCK_R4.txt R2_ACCEPTED_CONTRACT.txt R3_CHANGED_FILES.txt R3_QA_EVIDENCE.json R4_CHANGED_FILES.txt R4_QA_EVIDENCE.json PROTECTED_BOUNDARIES.txt NEXT_ACTION.txt > SHA256.txt)
+          (cd central_return && zip -q -j ../DPRO_TUTORIAL_BATCH10_MEDICAL_R4_CENTRAL_RETURN_V1.0_20260830.zip ./*)
+          unzip -t DPRO_TUTORIAL_BATCH10_MEDICAL_R4_CENTRAL_RETURN_V1.0_20260830.zip
+          unzip -l DPRO_TUTORIAL_BATCH10_MEDICAL_R4_CENTRAL_RETURN_V1.0_20260830.zip
+
+      - name: Upload CENTRAL RETURN artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DPRO_TUTORIAL_BATCH10_MEDICAL_R4_CENTRAL_RETURN_V1.0_20260830
+          path: DPRO_TUTORIAL_BATCH10_MEDICAL_R4_CENTRAL_RETURN_V1.0_20260830.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload R3-R4 QA evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DPRO_TUTORIAL_BATCH10_MEDICAL_R3-R4_QA_EVIDENCE_V1.1_20260830
+          path: |
+            R3_QA_EVIDENCE.json
+            R4_QA_EVIDENCE.json
+          if-no-files-found: error
+          retention-days: 14
