@@ -1,7 +1,7 @@
 (function (global, document) {
   'use strict';
 
-  const VERSION = 'DPRO MEDICAL TUTORIAL STANDARD V1.1 / R3';
+  const VERSION = 'DPRO MEDICAL TUTORIAL STANDARD V1.1 / R4';
   const STORAGE_KEY = 'dpro-tutorial:medical:first10';
   const STEP_PREFIX = 'dpro-tutorial:medical:first10:';
   const MARGIN = 8;
@@ -306,4 +306,57 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once:true});
   else init();
+})(window, document);
+
+
+(function (global, document) {
+  'use strict';
+  const T = global.DPROMedicalTutorial;
+  if (!T || !Array.isArray(T.steps) || T.steps.length !== 10) return;
+  const GUIDE_VERSION = 'DPRO MEDICAL GUIDE CENTER STANDARD V1.1 / R4';
+  let ui = null;
+
+  function style() {
+    if (document.getElementById('dpro-medical-guide-style')) return;
+    const s=document.createElement('style');
+    s.id='dpro-medical-guide-style';
+    s.textContent=`
+#dpro-guide-launcher{position:fixed;left:12px;bottom:76px;z-index:2147483600;min-height:44px;border:0;border-radius:999px;padding:0 15px;background:#fff;color:#102d45;border:1px solid #b9cbd8;font-weight:900;box-shadow:0 10px 28px rgba(0,0,0,.16);cursor:pointer;max-width:calc(100vw - 24px)}
+#dpro-guide-launcher:focus,#dpro-guide-launcher:focus-visible,.dpro-guide-panel button:focus,.dpro-guide-panel button:focus-visible{outline:3px solid #ffbf47;outline-offset:3px}
+.dpro-guide-panel{position:fixed;inset:18px;z-index:2147483602;width:min(920px,calc(100vw - 36px));height:min(760px,calc(100vh - 36px));margin:auto;overflow:auto;background:#f7fafc;color:#15324a;border:1px solid #b9cbd8;border-radius:20px;box-shadow:0 24px 80px rgba(7,32,49,.34);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}
+.dpro-guide-head{position:sticky;top:0;z-index:2;background:#102d45;color:#fff;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:10px}.dpro-guide-head h2{font-size:20px;margin:0}.dpro-guide-head button{min-height:38px;border:1px solid rgba(255,255,255,.35);border-radius:10px;background:transparent;color:#fff;padding:0 12px;font-weight:850;cursor:pointer}.dpro-guide-body{padding:16px}.dpro-guide-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.dpro-guide-controls button{min-height:42px;border:1px solid #c7d8e3;border-radius:11px;background:#fff;color:#15324a;padding:0 14px;font-weight:900;cursor:pointer}.dpro-guide-controls button[data-primary="1"]{background:#1769aa;color:#fff;border-color:#1769aa}.dpro-guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.dpro-guide-item{background:#fff;border:1px solid #d5e2eb;border-radius:15px;padding:14px}.dpro-guide-item small{display:block;color:#1769aa;font-weight:900}.dpro-guide-item h3{font-size:16px;margin:5px 0 7px}.dpro-guide-item p{font-size:13px;line-height:1.6;color:#536d81;margin:0 0 10px}.dpro-guide-item button{min-height:38px;border:1px solid #c7d8e3;border-radius:10px;background:#fff;color:#1769aa;padding:0 12px;font-weight:900;cursor:pointer}.dpro-guide-note{font-size:12px;color:#60788b;margin:0 0 12px}
+@media(max-width:620px){#dpro-guide-launcher{left:10px;bottom:122px}.dpro-guide-panel{inset:10px;width:calc(100vw - 20px);height:calc(100vh - 20px)}.dpro-guide-grid{grid-template-columns:1fr}.dpro-guide-controls{display:grid;grid-template-columns:1fr 1fr}.dpro-guide-controls button{width:100%}}
+`;
+    document.head.appendChild(s);
+  }
+  function build(){
+    if(ui) return ui;
+    style();
+    const launcher=document.createElement('button');
+    launcher.id='dpro-guide-launcher';launcher.type='button';launcher.textContent='Guide Center';launcher.setAttribute('aria-controls','dpro-guide-panel');
+    const panel=document.createElement('section');
+    panel.id='dpro-guide-panel';panel.className='dpro-guide-panel';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','false');panel.setAttribute('aria-labelledby','dpro-guide-title');
+    panel.innerHTML=`<div class="dpro-guide-head"><h2 id="dpro-guide-title">DPRO MEDICAL Guide Center</h2><button type="button" data-guide-close>閉じる</button></div><div class="dpro-guide-body"><p class="dpro-guide-note">First10と同じ10ステップ・同じ順序・同じResume状態を使います。Guide Centerから業務操作を自動実行することはありません。</p><div class="dpro-guide-controls"><button type="button" data-guide-start data-primary="1">Start</button><button type="button" data-guide-resume>Resume</button><button type="button" data-guide-replay>Replay</button></div><div class="dpro-guide-grid"></div></div>`;
+    const grid=panel.querySelector('.dpro-guide-grid');
+    T.steps.forEach((step,i)=>{
+      const item=document.createElement('article');item.className='dpro-guide-item';item.dataset.stepId=step.id;item.dataset.stepOrder=String(step.order);
+      item.innerHTML=`<small>STEP ${String(step.order).padStart(2,'0')} / 10</small><h3></h3><p></p><button type="button" data-guide-index="${i}">このステップを見る</button>`;
+      item.querySelector('h3').textContent=step.title;item.querySelector('p').textContent=step.copy;grid.appendChild(item);
+    });
+    document.body.append(launcher,panel);
+    ui={launcher,panel,close:panel.querySelector('[data-guide-close]'),start:panel.querySelector('[data-guide-start]'),resume:panel.querySelector('[data-guide-resume]'),replay:panel.querySelector('[data-guide-replay]')};
+    launcher.addEventListener('click',open);
+    ui.close.addEventListener('click',close);
+    ui.start.addEventListener('click',()=>{T.start();close(false);});
+    ui.resume.addEventListener('click',()=>{T.resume();close(false);});
+    ui.replay.addEventListener('click',()=>{T.replay();close(false);});
+    panel.querySelectorAll('[data-guide-index]').forEach(btn=>btn.addEventListener('click',()=>{T.goTo(Number(btn.dataset.guideIndex));close(false);}));
+    return ui;
+  }
+  function open(){build();ui.panel.hidden=false;setTimeout(()=>ui.close.focus({preventScroll:true}),0);return snapshot();}
+  function close(returnFocus=true){if(!ui)return snapshot();ui.panel.hidden=true;if(returnFocus)setTimeout(()=>ui.launcher.focus({preventScroll:true}),0);return snapshot();}
+  function snapshot(){return Object.freeze({version:GUIDE_VERSION,count:T.steps.length,open:!!ui&&!ui.panel.hidden,stepIds:T.steps.map(s=>s.id)});}
+  function init(){build();document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui&&!ui.panel.hidden){e.preventDefault();close();}},true);}
+  global.DPROMedicalGuideCenter=Object.freeze({version:GUIDE_VERSION,open,close,state:snapshot,count:()=>T.steps.length,steps:T.steps});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })(window, document);
