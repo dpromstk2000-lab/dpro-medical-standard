@@ -353,10 +353,11 @@
     panel.querySelectorAll('[data-guide-index]').forEach(btn=>btn.addEventListener('click',()=>{T.goTo(Number(btn.dataset.guideIndex));close(false);}));
     return ui;
   }
-  function open(){build();ui.panel.hidden=false;setTimeout(()=>ui.close.focus({preventScroll:true}),0);return snapshot();}
+  // R4 GUIDE FOCUS RECOVERY FIX V1.0: never leave Tutorial overlay open behind Guide Center.
+  function open(){build();if(T&&typeof T.close==='function')T.close(false);ui.panel.hidden=false;setTimeout(()=>ui.close.focus({preventScroll:true}),0);return snapshot();}
   function close(returnFocus=true){if(!ui)return snapshot();ui.panel.hidden=true;if(returnFocus)setTimeout(()=>ui.launcher.focus({preventScroll:true}),0);return snapshot();}
   function snapshot(){return Object.freeze({version:GUIDE_VERSION,count:T.steps.length,open:!!ui&&!ui.panel.hidden,stepIds:T.steps.map(s=>s.id)});}
-  function init(){build();document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui&&!ui.panel.hidden){e.preventDefault();close();}},true);}
+  function init(){build();document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui&&!ui.panel.hidden){e.preventDefault();e.stopImmediatePropagation();close();}},true);}
   global.DPROMedicalGuideCenter=Object.freeze({version:GUIDE_VERSION,open,close,state:snapshot,count:()=>T.steps.length,steps:T.steps});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })(window, document);
