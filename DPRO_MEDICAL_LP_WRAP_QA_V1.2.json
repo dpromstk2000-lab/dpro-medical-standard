@@ -1,0 +1,761 @@
+{
+  "standard": "DPRO MEDICAL LP JAPANESE WRAP V1.2",
+  "rule": "meaning-unit-fixed-wrap / desktop-mobile-specific / browser-auto-split-prohibited",
+  "viewports": {
+    "375": {
+      "page_overflow_pass": true,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "semantic_line_count_pass": true,
+      "p1_lines": 3,
+      "p10_lines": 2,
+      "headline_lines": [
+        {
+          "text": "予約だけで終わらない。",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "患者と医院の流れを、",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "ひとつに。",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "こんなお悩み、",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "ありませんか？",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "なぜ、問題が",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "起きるのか。",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "入口は自由。",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "管理は、ひとつ。",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "患者さんは、",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "来院前から迷いにくい。",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "医院側は、役割ごとに",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "必要な情報へ。",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "導入前と導入後。",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "3つまとめて",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "月額5,500円（税込）。",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "実際のMEDICAL画面で",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "確認。",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "まずはLINEで、",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "お気軽にご相談ください。",
+          "scrollWidth": 345,
+          "clientWidth": 345,
+          "display": "block",
+          "pass": true
+        }
+      ]
+    },
+    "390": {
+      "page_overflow_pass": true,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "semantic_line_count_pass": true,
+      "p1_lines": 3,
+      "p10_lines": 2,
+      "headline_lines": [
+        {
+          "text": "予約だけで終わらない。",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "患者と医院の流れを、",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "ひとつに。",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "こんなお悩み、",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "ありませんか？",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "なぜ、問題が",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "起きるのか。",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "入口は自由。",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "管理は、ひとつ。",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "患者さんは、",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "来院前から迷いにくい。",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "医院側は、役割ごとに",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "必要な情報へ。",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "導入前と導入後。",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "3つまとめて",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "月額5,500円（税込）。",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "実際のMEDICAL画面で",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "確認。",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "まずはLINEで、",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "お気軽にご相談ください。",
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "display": "block",
+          "pass": true
+        }
+      ]
+    },
+    "430": {
+      "page_overflow_pass": true,
+      "scrollWidth": 430,
+      "clientWidth": 430,
+      "semantic_line_count_pass": true,
+      "p1_lines": 3,
+      "p10_lines": 2,
+      "headline_lines": [
+        {
+          "text": "予約だけで終わらない。",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "患者と医院の流れを、",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "ひとつに。",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "こんなお悩み、",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "ありませんか？",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "なぜ、問題が",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "起きるのか。",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "入口は自由。",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "管理は、ひとつ。",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "患者さんは、",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "来院前から迷いにくい。",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "医院側は、役割ごとに",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "必要な情報へ。",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "導入前と導入後。",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "3つまとめて",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "月額5,500円（税込）。",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "実際のMEDICAL画面で",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "確認。",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "まずはLINEで、",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "お気軽にご相談ください。",
+          "scrollWidth": 400,
+          "clientWidth": 400,
+          "display": "block",
+          "pass": true
+        }
+      ]
+    },
+    "768": {
+      "page_overflow_pass": true,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "semantic_line_count_pass": true,
+      "p1_lines": 3,
+      "p10_lines": 2,
+      "headline_lines": [
+        {
+          "text": "予約だけで終わらない。",
+          "scrollWidth": 738,
+          "clientWidth": 738,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "患者と医院の流れを、",
+          "scrollWidth": 738,
+          "clientWidth": 738,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "ひとつに。",
+          "scrollWidth": 738,
+          "clientWidth": 738,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "こんなお悩みありませんか？",
+          "scrollWidth": 738,
+          "clientWidth": 738,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "なぜ、問題が起きるのか。",
+          "scrollWidth": 738,
+          "clientWidth": 738,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "入口は自由。管理は、ひとつ。",
+          "scrollWidth": 738,
+          "clientWidth": 738,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "患者さんは、来院前から迷いにくい。",
+          "scrollWidth": 738,
+          "clientWidth": 738,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "医院側は、役割ごとに必要な情報へ。",
+          "scrollWidth": 738,
+          "clientWidth": 738,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "導入前と導入後。",
+          "scrollWidth": 738,
+          "clientWidth": 738,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "3つまとめて月額5,500円（税込）。",
+          "scrollWidth": 738,
+          "clientWidth": 738,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "実際のMEDICAL画面で確認。",
+          "scrollWidth": 738,
+          "clientWidth": 738,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "まずはLINEで、",
+          "scrollWidth": 738,
+          "clientWidth": 738,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "お気軽にご相談ください。",
+          "scrollWidth": 738,
+          "clientWidth": 738,
+          "display": "block",
+          "pass": true
+        }
+      ]
+    },
+    "1280": {
+      "page_overflow_pass": true,
+      "scrollWidth": 1280,
+      "clientWidth": 1280,
+      "semantic_line_count_pass": true,
+      "p1_lines": 3,
+      "p10_lines": 2,
+      "headline_lines": [
+        {
+          "text": "予約だけで終わらない。",
+          "scrollWidth": 641,
+          "clientWidth": 641,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "患者と医院の流れを、",
+          "scrollWidth": 641,
+          "clientWidth": 641,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "ひとつに。",
+          "scrollWidth": 641,
+          "clientWidth": 641,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "こんなお悩みありませんか？",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "なぜ、問題が起きるのか。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "入口は自由。管理は、ひとつ。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "患者さんは、来院前から迷いにくい。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "医院側は、役割ごとに必要な情報へ。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "導入前と導入後。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "3つまとめて月額5,500円（税込）。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "実際のMEDICAL画面で確認。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "まずはLINEで、",
+          "scrollWidth": 597,
+          "clientWidth": 597,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "お気軽にご相談ください。",
+          "scrollWidth": 597,
+          "clientWidth": 597,
+          "display": "block",
+          "pass": true
+        }
+      ]
+    },
+    "1440": {
+      "page_overflow_pass": true,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "semantic_line_count_pass": true,
+      "p1_lines": 3,
+      "p10_lines": 2,
+      "headline_lines": [
+        {
+          "text": "予約だけで終わらない。",
+          "scrollWidth": 641,
+          "clientWidth": 641,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "患者と医院の流れを、",
+          "scrollWidth": 641,
+          "clientWidth": 641,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "ひとつに。",
+          "scrollWidth": 641,
+          "clientWidth": 641,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "こんなお悩みありませんか？",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "なぜ、問題が起きるのか。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "入口は自由。管理は、ひとつ。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "患者さんは、来院前から迷いにくい。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "医院側は、役割ごとに必要な情報へ。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "導入前と導入後。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "3つまとめて月額5,500円（税込）。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "実際のMEDICAL画面で確認。",
+          "scrollWidth": 1120,
+          "clientWidth": 1120,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "まずはLINEで、",
+          "scrollWidth": 597,
+          "clientWidth": 597,
+          "display": "block",
+          "pass": true
+        },
+        {
+          "text": "お気軽にご相談ください。",
+          "scrollWidth": 597,
+          "clientWidth": 597,
+          "display": "block",
+          "pass": true
+        }
+      ]
+    }
+  },
+  "pass": true,
+  "errors": []
+}
