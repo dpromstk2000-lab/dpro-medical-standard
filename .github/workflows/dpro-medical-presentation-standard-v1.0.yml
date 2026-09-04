@@ -1,0 +1,352 @@
+name: DPRO MEDICAL Presentation Standard Apply V1.0
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dpro-medical-presentation-standard-v1
+  cancel-in-progress: false
+
+jobs:
+  presentation-standard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Install browser / Japanese fonts / PDF tools
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk poppler-utils
+          python -m pip install --upgrade pip
+          python -m pip install playwright qrcode[pil] pypdf pillow
+          python -m playwright install --with-deps chromium
+
+      - name: Build DPRO MEDICAL presentation standard
+        shell: bash
+        run: |
+          cat > /tmp/dpro_medical_presentation_build.py <<'PY'
+          from pathlib import Path
+          import hashlib, html, json, os, shutil, subprocess, sys, threading, time
+          from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+
+          ROOT = Path.cwd()
+          ASSET = ROOT / "assets" / "presentation"
+          ASSET.mkdir(parents=True, exist_ok=True)
+
+          BASE = "https://dpromstk2000-lab.github.io/dpro-medical-standard"
+          DEMO = f"{BASE}/medical-public-demo.html"
+          GUIDE = f"{BASE}/guide-center.html"
+          LP = f"{BASE}/lp.html"
+          PRODUCT = "https://dpromstk2000-lab.github.io/dpro-line-systems-site/systems/medical.html"
+          OFFICIAL = "https://dpro-shop.com/systems/medical"
+          SYSTEM_CHECK = f"{BASE}/system-check.html"
+
+          PROTECTED = [
+              "medical-public-demo.html", "medical-tutorial.js", "index.html", "member.html",
+              "owner.html", "owner-ipad.html", "staff.html", "system-check.html",
+              "patient-reservation.html", "patient-questionnaire.html", "patient-reception.html",
+              "patient-wait-status.html", "patient-digital-card.html"
+          ]
+
+          FIRST10 = [
+              (1,"30秒体験を開始","公開DEMOの30秒導線を開始し、患者・医院・診療科の見方を確認します。"),
+              (2,"患者スマホを開く","患者側の画面例へ切り替え、予約・問診・受付がまとまる入口を確認します。"),
+              (3,"医院管理PCを見る","医院側の管理画面例へ切り替え、患者側と医院側が同じ流れでつながる構成を確認します。"),
+              (4,"6診療科モデルを比較","STANDARD・眼科・小児科・整形外科・美容医療・婦人科/女性医療を比較します。"),
+              (5,"眼科PRESETへ切替","眼科モデルへ切り替え、診療科ごとの表示差分を確認します。"),
+              (6,"患者画面の役割を確認","患者スマホの予約・問診・受付入口を確認します。"),
+              (7,"医院管理PCの役割を確認","予約・受付・待ち・診察中などの全体把握を確認します。"),
+              (8,"受付iPadの役割を確認","受付業務に必要な情報へ集中した構成を確認します。"),
+              (9,"スタッフ画面の役割を確認","スタッフ画面で院内進行と担当業務を確認します。"),
+              (10,"医院HPの公開境界を確認","公開可能な予約導線・待ち状況・お知らせの見せ方を確認します。")
+          ]
+
+          SPECIALTIES = ["STANDARD / 一般・内科","EYE / 眼科","PEDIATRIC / 小児科","ORTHO / 整形外科","BEAUTY / 美容医療","WOMEN / 婦人科・女性医療"]
+          FUNCTIONS = [
+              ("01","予約","患者スマホから予約導線を整理"),
+              ("02","WEB問診","来院前入力を医院運用につなぐ"),
+              ("03","来院受付","受付iPad・医院側で来院を確認"),
+              ("04","院内進行","受付済・待ち・診察などの状態を共有"),
+              ("05","待ち状況","患者側でも現在状況を確認"),
+              ("06","次回フォロー","診療後の次回導線まで一連で確認")
+          ]
+
+
+          def sha(path):
+              p=ROOT/path
+              if not p.exists(): return None
+              return hashlib.sha256(p.read_bytes()).hexdigest()
+
+          before={p:sha(p) for p in PROTECTED}
+
+
+          def write(path, text):
+              p=ROOT/path
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_text(text, encoding='utf-8')
+
+
+          def qr_png(name, url):
+              import qrcode
+              img=qrcode.make(url)
+              path=ASSET/f"qr-{name}.png"
+              img.save(path)
+              return f"assets/presentation/{path.name}"
+
+          QR={
+            "demo":qr_png("demo",DEMO),
+            "guide":qr_png("guide",GUIDE),
+            "product":qr_png("product",PRODUCT),
+            "official":qr_png("official",OFFICIAL),
+            "systemcheck":qr_png("system-check",SYSTEM_CHECK),
+          }
+
+          class Quiet(SimpleHTTPRequestHandler):
+              def log_message(self, *args): pass
+
+          server = ThreadingHTTPServer(("127.0.0.1", 8000), Quiet)
+          thread = threading.Thread(target=server.serve_forever, daemon=True)
+          thread.start()
+
+          from playwright.sync_api import sync_playwright
+
+
+          def safe_view_shot(page, selector, path):
+              try:
+                  loc=page.locator(selector)
+                  if loc.count()>0:
+                      loc.first.screenshot(path=str(path))
+                      return True
+              except Exception:
+                  pass
+              page.screenshot(path=str(path), full_page=False)
+              return False
+
+          with sync_playwright() as pw:
+              browser=pw.chromium.launch(headless=True)
+              page=browser.new_page(viewport={"width":1440,"height":1000}, device_scale_factor=1)
+              page.goto("http://127.0.0.1:8000/medical-public-demo.html", wait_until="domcontentloaded")
+              page.wait_for_timeout(700)
+              page.screenshot(path=str(ASSET/"medical-demo-desktop.png"), full_page=True)
+              for key, sel in [("owner",'.role-card[data-role="owner"]'),("patient",'.role-card[data-role="patient"]'),("ipad",'.role-card[data-role="ipad"]'),("staff",'.role-card[data-role="staff"]'),("hp",'.role-card[data-role="hp"]')]:
+                  try:
+                      if page.locator(sel).count():
+                          page.locator(sel).first.click()
+                          page.wait_for_timeout(250)
+                  except Exception:
+                      pass
+                  safe_view_shot(page, "#viewer", ASSET/f"medical-{key}-screen.png")
+              m=browser.new_page(viewport={"width":390,"height":844}, device_scale_factor=1)
+              m.goto("http://127.0.0.1:8000/medical-public-demo.html", wait_until="domcontentloaded")
+              m.wait_for_timeout(500)
+              m.screenshot(path=str(ASSET/"medical-demo-mobile.png"), full_page=True)
+              browser.close()
+
+          COMMON_CSS='''
+          :root{--ink:#15324a;--muted:#60758a;--line:#d7e4ec;--blue:#1769aa;--navy:#102d45;--soft:#eef6fb;--red:#a51743;--green:#187a63;--white:#fff;--shadow:0 16px 42px rgba(20,55,80,.10)}
+          *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;background:#f7fafc}a{color:inherit}.shell{width:min(1120px,calc(100% - 28px));margin:auto}.kicker{color:var(--red);font-size:12px;font-weight:950;letter-spacing:.12em}.btn{display:inline-flex;min-height:50px;align-items:center;justify-content:center;padding:0 18px;border-radius:12px;text-decoration:none;font-weight:900;border:1px solid var(--line);background:#fff}.btn.primary{background:var(--red);color:#fff;border-color:var(--red)}.btn.dark{background:var(--navy);color:#fff;border-color:var(--navy)}.note{font-size:12px;color:var(--muted);line-height:1.65}.card{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow)}
+          '''
+
+          # GUIDE CENTER
+          steps=''.join(f'<article class="step"><b>{n:02d}</b><div><strong>{html.escape(t)}</strong><p>{html.escape(c)}</p></div></article>' for n,t,c in FIRST10)
+          guide=f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DPRO MEDICAL Guide Center</title><meta name="robots" content="index,follow"><style>{COMMON_CSS}
+          body{{background:#f4f8fb}}header{{background:var(--navy);color:#fff;padding:42px 0}}header h1{{font-size:clamp(34px,6vw,60px);margin:8px 0 12px}}header p{{color:#d6e5ee;line-height:1.8;max-width:820px}}.actions{{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}}main{{padding:42px 0 70px}}.guidebox{{padding:24px}}.step{{display:grid;grid-template-columns:50px 1fr;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}}.step:last-child{{border-bottom:0}}.step>b{{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--blue)}}.step strong{{font-size:17px}}.step p{{margin:5px 0 0;color:var(--muted);line-height:1.65;font-size:14px}}.links{{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}}.links a{{padding:17px;text-decoration:none}}@media(max-width:720px){{.links{{grid-template-columns:1fr}}}}</style></head><body>
+          <header><div class="shell"><div class="kicker" style="color:#ff9db8">DPRO MEDICAL / GUIDE CENTER / TUTORIAL STANDARD V1.1</div><h1>契約後も、自分で確認できる<br>操作ガイド。</h1><p>First10を基準に、患者・医院管理PC・受付iPad・スタッフ・医院HPの役割を順番に確認できます。公開DEMOは架空データで、本番書込みは行いません。</p><div class="actions"><a class="btn primary" href="medical-public-demo.html">Start / 公開DEMOで開始</a><a class="btn" href="medical-public-demo.html">Resume / 続きから</a><a class="btn" href="medical-public-demo.html">Replay / 最初から</a></div></div></header>
+          <main class="shell"><section class="card guidebox"><div class="kicker">FIRST10 / EXACTLY 10 STEPS</div><h2>最初に見る10ステップ</h2>{steps}</section><section class="links"><a class="card" href="DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.1.pdf"><strong>Quick Start PDF</strong><p class="note">3ページ。導入直後の確認用。</p></a><a class="card" href="DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.1.pdf"><strong>詳細操作マニュアル</strong><p class="note">10ページ保存版。役割別・安全境界・System Checkまで。</p></a><a class="card" href="system-check.html"><strong>System Check</strong><p class="note">本番運用前の確認入口。</p></a></section><p class="note">DPRO MEDICALは医療行為そのものを代替するものではありません。診療判断・医療記録・個人情報の取扱いは、契約先医療機関の運用規程に従ってください。</p></main><script src="medical-tutorial.js"></script></body></html>'''
+          write('guide-center.html',guide)
+
+          # LP P1-P10
+          func_cards=''.join(f'<article><b>{n}</b><strong>{html.escape(t)}</strong><p>{html.escape(c)}</p></article>' for n,t,c in FUNCTIONS)
+          spec_cards=''.join(f'<span>{html.escape(x)}</span>' for x in SPECIALTIES)
+          lp_html=f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DPRO MEDICAL｜医療機関向け導入LP</title><meta name="description" content="予約・WEB問診・来院受付・院内進行・待ち状況を患者スマホと医院運用につなぐDPRO MEDICAL。6診療科モデル・5画面の公開DEMOで確認できます。"><style>{COMMON_CSS}
+          body{{overflow-x:hidden}}.sec{{padding:68px 0}}.soft{{background:var(--soft)}}.dark{{background:var(--navy);color:#fff}}.hero{{padding:78px 0 64px;background:linear-gradient(135deg,#eef7fc,#fff 55%,#fdf0f5)}}h1{{font-size:clamp(42px,7vw,78px);line-height:1.02;margin:12px 0 20px;letter-spacing:-.04em}}h2{{font-size:clamp(30px,4.5vw,48px);margin:7px 0 16px;line-height:1.18}}.lead{{font-size:clamp(17px,2vw,21px);line-height:1.8;color:#3f5d73;max-width:820px}}.actions{{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}}.grid3{{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}}.grid2{{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:24px}}.panel{{padding:22px}}.panel p{{color:var(--muted);line-height:1.7}}.problem b{{color:var(--red)}}.diagram{{display:grid;grid-template-columns:1fr auto 1.3fr auto 1fr;gap:12px;align-items:center;margin-top:26px}}.node{{padding:20px;border-radius:18px;background:#fff;border:1px solid var(--line);text-align:center;color:var(--ink)}}.hub{{background:var(--red);color:#fff;border-color:var(--red)}}.arrow{{font-size:28px;font-weight:950}}.screens{{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:24px}}.screens img{{width:100%;border-radius:18px;border:1px solid var(--line);background:#fff}}.beforeafter{{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}}.before,.after{{padding:24px;border-radius:20px}}.before{{background:#fff4f4;border:1px solid #f0cccc}}.after{{background:#f2fbf7;border:1px solid #c9e5d8}}.price{{padding:26px}}.price strong{{font-size:28px}}.demoimg{{width:100%;border-radius:20px;border:1px solid rgba(255,255,255,.18);margin-top:24px}}.specialties{{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}}.specialties span{{padding:8px 10px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:12px;font-weight:850}}.dark .specialties span{{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)}}.final{{text-align:center}}.final .actions{{justify-content:center}}.label{{font-weight:950;color:var(--red);letter-spacing:.1em;font-size:12px}}@media(max-width:820px){{.grid3,.grid2,.screens,.beforeafter{{grid-template-columns:1fr}}.diagram{{grid-template-columns:1fr}}.arrow{{transform:rotate(90deg);text-align:center}}}}@media(max-width:560px){{.sec{{padding:48px 0}}.hero{{padding:52px 0}}.actions .btn{{width:100%}}}}</style></head><body>
+          <section class="hero" id="p1"><div class="shell"><div class="label">P1 / FIRST VIEW</div><div class="kicker">DPRO MEDICAL / 6診療科モデル × 5画面</div><h1>予約だけで、<br><span style="color:var(--red)">終わらせない。</span></h1><p class="lead">患者スマホの予約・WEB問診・来院受付から、医院管理PC・受付iPad・スタッフ・医院HP・次回フォローまで。同じ情報基盤につなぎます。</p><div class="actions"><a class="btn primary" href="medical-public-demo.html">30秒LIVE DEMO</a><a class="btn dark" href="guide-center.html">Guide Center</a><a class="btn" href="{OFFICIAL}">料金・導入相談</a></div><div class="specialties">{spec_cards}</div></div></section>
+          <section class="sec" id="p2"><div class="shell"><div class="label">P2 / OWNER PAIN</div><h2>患者対応が増えるほど、<br>情報が分かれやすくなる。</h2><div class="grid3 problem"><article class="card panel"><b>予約</b><p>予約情報だけが別管理になると、受付時に再確認が増えます。</p></article><article class="card panel"><b>問診・受付</b><p>来院前入力と当日受付がつながらないと、転記や確認が発生します。</p></article><article class="card panel"><b>院内進行</b><p>待ち・診察中などの状況が共有されないと、患者案内もスタッフ連携も遅れます。</p></article></div></div></section>
+          <section class="sec soft" id="p3"><div class="shell"><div class="label">P3 / WHY PROBLEM</div><h2>入口が増えることより、<br>管理が分かれることが問題。</h2><div class="card panel"><p>WEB、LINE、受付、医院管理PC、スタッフ、医院HP。それぞれが別々の情報を持つと、同じ患者の状態を複数箇所で更新する必要が生まれます。DPRO MEDICALは、入口を無理に一つへ限定せず、医院側の管理を共通基盤へ寄せる設計です。</p></div></div></section>
+          <section class="sec" id="p4"><div class="shell"><div class="label">P4 / CONNECTED SYSTEM</div><h2>入口は自由。管理は、ひとつ。</h2><div class="diagram"><div class="node">患者WEB / スマホ<br>予約・問診・受付</div><div class="arrow">→</div><div class="node hub"><b>DPRO MEDICAL</b><br>共通情報基盤</div><div class="arrow">→</div><div class="node">医院管理PC / iPad<br>Staff / 医院HP</div></div><div class="grid3">{func_cards}</div></div></section>
+          <section class="sec soft" id="p5"><div class="shell"><div class="label">P5 / CUSTOMER EXPERIENCE</div><h2>患者は、必要な場面だけ迷わず操作。</h2><div class="screens"><div><img src="assets/presentation/medical-patient-screen.png" alt="患者画面の実画面"><p class="note">公開DEMOの実画面キャプチャ。架空データのみ。</p></div><div class="card panel"><strong>来院前</strong><p>予約・WEB問診。</p><strong>来院時</strong><p>受付と待ち状況確認。</p><strong>診療後</strong><p>次回導線や医院からの案内へ。</p></div></div></div></section>
+          <section class="sec" id="p6"><div class="shell"><div class="label">P6 / OWNER & STAFF EXPERIENCE</div><h2>医院側は、役割に合わせた画面で確認。</h2><div class="screens"><img src="assets/presentation/medical-owner-screen.png" alt="医院管理PCの実画面"><div class="grid2"><article class="card panel"><strong>医院管理PC</strong><p>予約・受付・待ち・診察など全体を確認。</p></article><article class="card panel"><strong>受付iPad</strong><p>受付業務に必要な情報へ集中。</p></article><article class="card panel"><strong>スタッフ</strong><p>院内進行と担当業務を確認。</p></article><article class="card panel"><strong>医院HP</strong><p>公開してよい情報だけを患者へ表示。</p></article></div></div></div></section>
+          <section class="sec soft" id="p7"><div class="shell"><div class="label">P7 / BEFORE → AFTER</div><h2>「確認して転記」から、<br>「同じ状態を見る」へ。</h2><div class="beforeafter"><div class="before"><h3>BEFORE</h3><p>予約・問診・受付・待ち状況が別々。電話や口頭確認、二重入力が増えやすい。</p></div><div class="after"><h3>AFTER</h3><p>患者側と医院側を共通基盤で接続。各役割が同じ流れを見ながら運用できます。</p></div></div></div></section>
+          <section class="sec" id="p8"><div class="shell"><div class="label">P8 / PRICE & VALUE</div><h2>料金は、必要機能と導入条件を確認してご案内。</h2><div class="card price"><strong>数字を先に固定しません。</strong><p class="lead" style="font-size:16px">診療科、必要機能、運用範囲、LINEや公開サイトの構成で条件が変わるため、最新のDPRO SHOP／導入相談で確認します。このLPでは未確認の料金を表示しません。</p><a class="btn primary" href="{OFFICIAL}">DPRO SHOPで料金・導入を確認</a></div></div></section>
+          <section class="sec dark" id="p9"><div class="shell"><div class="label" style="color:#ff9db8">P9 / LIVE DEMO</div><h2>説明ではなく、実画面で30秒。</h2><p style="color:#d6e5ee;line-height:1.8">6診療科モデルと5画面を、公開DEMOで切り替えて確認できます。使用するのは架空データで、本番書込みは行いません。</p><img class="demoimg" src="assets/presentation/medical-demo-desktop.png" alt="DPRO MEDICAL 公開DEMO実画面"><div class="actions"><a class="btn primary" href="medical-public-demo.html">LIVE DEMOを開く</a><a class="btn" href="guide-center.html">First10で見る</a></div></div></section>
+          <section class="sec final" id="p10"><div class="shell"><div class="label">P10 / CONSULT & CTA</div><h2>自院の流れに合うか、<br>まず実画面で確認してください。</h2><p class="lead" style="margin-inline:auto">公開DEMO → Guide Center → 製品ページ → DPRO SHOPの順に確認できます。契約後の本番テナント・Owner登録はREADY工程で実施します。</p><div class="actions"><a class="btn primary" href="medical-public-demo.html">公開DEMO</a><a class="btn dark" href="{PRODUCT}">PRODUCT SITE</a><a class="btn" href="{OFFICIAL}">DPRO SHOP / 導入相談</a></div></div></section>
+          </body></html>'''
+          write('lp.html',lp_html)
+
+          # A4 MASTER V2.0 sales flyer
+          func6=''.join(f'<div class="fun"><b>{n} {html.escape(t)}</b><span>{html.escape(c)}</span></div>' for n,t,c in FUNCTIONS)
+          a4=f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>DPRO MEDICAL A4 Flyer MASTER V2.0</title><style>@page{{size:A4 portrait;margin:0}}*{{box-sizing:border-box}}body{{margin:0;font-family:"Noto Sans JP",sans-serif;color:#15324a;background:#ddd}}.page{{width:210mm;height:297mm;background:#fff;margin:auto;padding:10mm 11mm 8mm;overflow:hidden;position:relative}}.brand{{font-size:7.5pt;font-weight:900;letter-spacing:.12em;color:#1769aa}}h1{{font-size:25pt;line-height:1.08;margin:2.5mm 0 2mm}}h1 em{{font-style:normal;color:#a51743}}.lead{{font-size:9.5pt;line-height:1.6;color:#48677d;margin:0}}.hero{{display:grid;grid-template-columns:1.05fr .95fr;gap:5mm;align-items:center}}.hero img{{width:100%;height:53mm;object-fit:cover;object-position:top;border:1px solid #d7e4ec;border-radius:3mm}}.six{{display:grid;grid-template-columns:repeat(3,1fr);gap:2mm;margin-top:4mm}}.fun{{border:1px solid #d7e4ec;border-radius:2.4mm;padding:2.4mm;background:#f9fcfe;min-height:17mm}}.fun b{{display:block;font-size:8pt}}.fun span{{display:block;font-size:6.5pt;line-height:1.4;color:#60758a;margin-top:1mm}}.connected{{background:#102d45;color:white;border-radius:3mm;padding:3.5mm 4mm;margin-top:4mm;text-align:center}}.connected strong{{font-size:14pt}}.connected p{{font-size:7pt;color:#d6e5ee;margin:1.2mm 0 0}}.flow{{display:flex;justify-content:center;align-items:center;gap:2.5mm;margin-top:2mm;font-size:7.5pt;font-weight:900}}.flow i{{font-style:normal;color:#ff9db8}}.three{{display:grid;grid-template-columns:repeat(3,1fr);gap:2.5mm;margin-top:3mm}}.three div{{border-top:1mm solid #1769aa;background:#f5f9fc;padding:2.5mm;border-radius:0 0 2.5mm 2.5mm}}.three b{{font-size:8pt}}.three p{{font-size:6.5pt;line-height:1.4;color:#60758a;margin:1mm 0 0}}.cta{{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;margin-top:4mm;border-top:1px solid #d7e4ec;padding-top:3mm}}.q{{text-align:center}}.q img{{width:20mm;height:20mm}}.q b{{display:block;font-size:7.5pt}}.q small{{display:block;font-size:5.4pt;color:#60758a;line-height:1.25;margin-top:.7mm;word-break:break-all}}.foot{{position:absolute;left:11mm;right:11mm;bottom:4mm;font-size:5.5pt;color:#718493;display:flex;justify-content:space-between}}@media screen and (max-width:900px){{.page{{width:100%;height:auto;min-height:297mm}}}}</style></head><body><main class="page"><div class="brand">DPRO LINE SYSTEMS / DPRO MEDICAL / A4 FLYER MASTER V2.0</div><section class="hero"><div><h1>予約だけで、<br><em>終わらせない。</em></h1><p class="lead">予約・WEB問診・来院受付・院内進行・待ち状況・次回フォローまで。患者スマホと医院側の5画面を同じ情報基盤につなぎます。</p><p style="font-size:7pt;font-weight:900;color:#a51743;margin-top:2mm">6診療科モデル / 5画面 / 公開LIVE DEMO</p></div><img src="assets/presentation/medical-owner-screen.png" alt="医院管理PC実画面"></section><section class="six">{func6}</section><section class="connected"><strong>入口は自由。管理は、ひとつ。</strong><div class="flow"><span>WEB / LINE / 患者スマホ</span><i>→</i><span>DPRO MEDICAL</span><i>→</i><span>医院管理PC / iPad / Staff / HP</span></div><p>公開DEMOは架空データを使用し、本番書込みは行いません。</p></section><section class="three"><div><b>CUSTOM FIT</b><p>共通基盤を保ちながら、6診療科モデルで運用差分を確認。</p></div><div><b>LIVE SYNC</b><p>患者側・受付・スタッフ・医院HPが同じ流れを確認できる設計。</p></div><div><b>MONTHLY COST CHECK</b><p>料金・導入条件は最新のDPRO SHOP／導入相談で確認。</p></div></section><section class="cta"><div class="q"><img src="{QR['demo']}"><b>LIVE DEMO</b><small>{DEMO}</small></div><div class="q"><img src="{QR['product']}"><b>PRODUCT SITE</b><small>{PRODUCT}</small></div><div class="q"><img src="{QR['official']}"><b>DPRO SHOP / 導入相談</b><small>{OFFICIAL}</small></div></section><div class="foot"><span>DPRO MEDICAL / PRESENTATION STANDARD 2026-09</span><span>医療行為・診療判断を代替するものではありません。</span></div></main></body></html>'''
+          write('DPRO_MEDICAL_A4_FLYER_MASTER_V2.0.html',a4)
+
+          # Owner experience sheet, one page
+          exp=f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>DPRO MEDICAL Owner Experience Sheet</title><style>@page{{size:A4 portrait;margin:0}}*{{box-sizing:border-box}}body{{margin:0;font-family:"Noto Sans JP",sans-serif;color:#15324a}}.page{{width:210mm;height:297mm;padding:10mm 11mm;overflow:hidden}}h1{{font-size:23pt;margin:2mm 0 1mm}}.lead{{font-size:9pt;color:#5d7385;line-height:1.55}}.shots{{display:grid;grid-template-columns:1.15fr .85fr;gap:3mm;margin-top:3mm}}.shots img{{width:100%;height:59mm;object-fit:cover;object-position:top;border:1px solid #d7e4ec;border-radius:3mm}}.qrs{{display:grid;grid-template-columns:repeat(5,1fr);gap:2mm;margin-top:4mm}}.q{{text-align:center;border:1px solid #d7e4ec;border-radius:2.5mm;padding:2mm}}.q img{{width:21mm;height:21mm}}.q b{{display:block;font-size:6.5pt;margin-top:1mm}}.route{{background:#102d45;color:#fff;border-radius:3mm;padding:3.5mm;margin-top:4mm}}.route h2{{font-size:12pt;margin:0 0 2mm}}.steps{{display:grid;grid-template-columns:repeat(5,1fr);gap:2mm}}.steps div{{font-size:6.5pt;line-height:1.45}}.steps b{{display:block;color:#ff9db8}}.benefit{{display:grid;grid-template-columns:repeat(3,1fr);gap:2.5mm;margin-top:3mm}}.benefit div{{background:#eef6fb;border-radius:2.5mm;padding:2.5mm}}.benefit b{{font-size:7pt}}.benefit p{{font-size:6pt;line-height:1.4;margin:1mm 0 0;color:#5d7385}}.bottom{{display:grid;grid-template-columns:1fr auto;gap:4mm;align-items:center;margin-top:4mm;border-top:1px solid #d7e4ec;padding-top:3mm}}.bottom p{{font-size:7pt;line-height:1.5;margin:0}}.bottom img{{width:24mm;height:24mm}}.tiny{{font-size:5.5pt;color:#718493;margin-top:2mm}}</style></head><body><main class="page"><div style="font-size:7pt;font-weight:900;letter-spacing:.1em;color:#1769aa">DPRO MEDICAL / オーナー様用 操作体験シート</div><h1>実画面で、5分体験。</h1><p class="lead">患者スマホ → 医院管理PC → 受付iPad → スタッフ → 医院HP。公開DEMOの架空データで、導入後の流れを順番に確認できます。</p><div class="shots"><img src="assets/presentation/medical-owner-screen.png"><img src="assets/presentation/medical-demo-mobile.png"></div><div class="qrs"><div class="q"><img src="{QR['demo']}"><b>1 公開DEMO</b></div><div class="q"><img src="{QR['demo']}"><b>2 患者画面</b></div><div class="q"><img src="{QR['demo']}"><b>3 医院管理PC</b></div><div class="q"><img src="{QR['guide']}"><b>4 First10</b></div><div class="q"><img src="{QR['systemcheck']}"><b>5 System Check</b></div></div><section class="route"><h2>5分で見る順番</h2><div class="steps"><div><b>01 / 30秒</b>公開DEMOで全体像</div><div><b>02 / 60秒</b>患者スマホを確認</div><div><b>03 / 90秒</b>医院管理PC・iPad</div><div><b>04 / 90秒</b>6診療科モデル比較</div><div><b>05 / 30秒</b>Guide Center確認</div></div></section><div class="benefit"><div><b>患者側</b><p>予約・問診・受付・待ち状況。</p></div><div><b>医院側</b><p>管理PC・iPad・スタッフで院内進行。</p></div><div><b>導入後</b><p>契約後の本番テナント作成はREADY工程で実施。</p></div></div><div class="bottom"><p><b>PCでも確認できます</b><br>{DEMO}<br>{GUIDE}<br><span style="color:#a51743;font-weight:900">料金・導入条件はDPRO SHOPで最新情報をご確認ください。</span></p><img src="{QR['official']}"></div><div class="tiny">※ 本シートは操作体験用です。実在患者情報・実在医院情報は使用しません。DPRO MEDICALは医療行為・診療判断を代替しません。</div></main></body></html>'''
+          write('DPRO_MEDICAL_OWNER_EXPERIENCE_SHEET_V1.0.html',exp)
+
+          # PDF common styles
+          PDF_STYLE='''@page{size:A4 portrait;margin:0}*{box-sizing:border-box}body{margin:0;font-family:"Noto Sans JP",sans-serif;color:#15324a;background:#ddd}.pdf-page{width:210mm;height:297mm;background:#fff;padding:14mm 15mm 12mm;page-break-after:always;overflow:hidden;position:relative}.pdf-page:last-child{page-break-after:auto}.ey{font-size:7pt;font-weight:900;letter-spacing:.12em;color:#1769aa}.pdf-page h1{font-size:27pt;line-height:1.15;margin:5mm 0 3mm}.pdf-page h2{font-size:20pt;margin:4mm 0 3mm}.pdf-page h3{font-size:12pt;margin:3mm 0 1.5mm}.pdf-page p,.pdf-page li{font-size:9.5pt;line-height:1.75}.muted{color:#60758a}.box{border:1px solid #d7e4ec;border-radius:3mm;padding:4mm;margin-top:3mm}.soft{background:#eef6fb}.dark{background:#102d45;color:#fff}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm}.shot{width:100%;max-height:105mm;object-fit:contain;object-position:top;border:1px solid #d7e4ec;border-radius:3mm}.footer{position:absolute;left:15mm;right:15mm;bottom:6mm;font-size:6pt;color:#718493;display:flex;justify-content:space-between}.badge{display:inline-block;padding:1.5mm 2.5mm;border-radius:999px;background:#a51743;color:#fff;font-size:7pt;font-weight:900}.qrline{display:flex;gap:5mm;align-items:center}.qrline img{width:28mm;height:28mm}ol.first10{margin:4mm 0 0;padding-left:7mm;columns:2;column-gap:8mm}ol.first10 li{break-inside:avoid;margin-bottom:2mm}'''
+
+          def pg(n,title,body,label="DPRO MEDICAL"):
+              return f'<section class="pdf-page"><div class="ey">{label}</div><h1>{title}</h1>{body}<div class="footer"><span>DPRO MEDICAL / PRESENTATION STANDARD</span><span>{n}</span></div></section>'
+
+          first10_li=''.join(f'<li><b>{html.escape(t)}</b><br><span class="muted">{html.escape(c)}</span></li>' for _,t,c in FIRST10)
+          quick='<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>DPRO MEDICAL Quick Start V1.1</title><style>'+PDF_STYLE+'</style></head><body>'
+          quick+=pg(1,'かんたんスタートガイド','''<span class="badge">QUICK START / 3 PAGES</span><p class="muted">契約後も、自分で確認できる操作ガイド。まずは公開DEMOとGuide Centerで全体の流れをつかみます。</p><div class="grid2"><div class="box soft"><h3>Start</h3><p>30秒公開DEMOを最初から確認。</p><h3>Resume</h3><p>First10の途中から続ける。</p><h3>Replay</h3><p>完了後も最初から再確認。</p></div><div class="qrline"><img src="'''+QR['guide']+'''"><div><b>Guide Center</b><p class="muted">'''+GUIDE+'''</p></div></div></div><img class="shot" src="assets/presentation/medical-demo-desktop.png" alt="公開DEMO">''')
+          quick+=pg(2,'First10｜最初に見る10ステップ','<ol class="first10">'+first10_li+'</ol>', 'DPRO MEDICAL / FIRST10 EXACTLY 10')
+          quick+=pg(3,'困ったときの確認先','''<div class="grid2"><div class="box"><h3>Guide Center</h3><p>First10・Quick Start・詳細マニュアルの入口。</p></div><div class="box"><h3>System Check</h3><p>営業前・本番切替前にシステム状態を確認。</p></div><div class="box"><h3>FAQ / 操作確認</h3><p>役割別の操作は詳細マニュアルで確認。</p></div><div class="box"><h3>本番契約後</h3><p>実テナント・Owner登録はREADY／管理センターの別工程。</p></div></div><div class="qrline box soft"><img src="'''+QR['systemcheck']+'''"><div><b>System Check</b><p class="muted">'''+SYSTEM_CHECK+'''</p></div></div><p class="muted">公開DEMOは架空データのみ。本番患者情報や本番Owner Authは標準製品段階では作成しません。</p>''')
+          quick+='</body></html>'
+          write('DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.1.html',quick)
+
+          manual='<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>DPRO MEDICAL Detailed Manual V1.1</title><style>'+PDF_STYLE+'</style></head><body>'
+          manual+=pg(1,'導入・操作マニュアル（保存版）','''<span class="badge">DETAILED MANUAL / 10 PAGES</span><p class="muted">Guide Center / First10 / 役割別業務の見方を一冊にまとめた保存版です。</p><div class="qrline box soft"><img src="'''+QR['guide']+'''"><div><b>最新版はGuide Center</b><p class="muted">'''+GUIDE+'''</p></div></div><h3>この冊子の範囲</h3><p>患者スマホ、医院管理PC、受付iPad、スタッフ、医院HP、System Check、READY、本番切替前の安全境界。</p>''')
+          manual+=pg(2,'患者スマホ｜予約から待ち状況まで','''<img class="shot" src="assets/presentation/medical-patient-screen.png"><div class="box"><h3>患者側で確認する流れ</h3><p>予約 → WEB問診 → 来院受付 → 待ち状況 → 次回導線。表示内容は医院設定と診療科モデルにより異なります。</p></div><p class="muted">患者向け画面で医院内部の管理情報を公開しないこと。''')
+          manual+=pg(3,'医院管理PC 1｜全体状況を確認','''<img class="shot" src="assets/presentation/medical-owner-screen.png"><div class="box"><h3>基本</h3><p>予約・受付・待ち・診察など、院内の流れを一覧で確認します。患者側の入力と医院側の状態が同じ流れで見えることを確認してください。</p></div>''')
+          manual+=pg(4,'医院管理PC 2｜設定と公開境界','''<div class="grid2"><div class="box"><h3>Ownerで扱うもの</h3><p>医院プロフィール、診療時間、診療科モデル、公開導線、運用設定など。</p></div><div class="box"><h3>公開しないもの</h3><p>内部メモ、権限情報、秘密情報、開発用情報、患者の不要な個人情報。</p></div></div><div class="box soft"><h3>変更前確認</h3><p>本番では権限・RLS・監査・System Checkを確認し、デモ用操作と本番操作を混在させないでください。</p></div>''')
+          manual+=pg(5,'スタッフ 1｜院内進行の確認','''<img class="shot" src="assets/presentation/medical-staff-screen.png"><div class="box"><p>スタッフ画面では、担当業務に必要な範囲で患者の進行状況を確認します。Owner向け設定や不要な管理項目は役割分離します。</p></div>''')
+          manual+=pg(6,'スタッフ 2｜運用時の注意','''<div class="grid2"><div class="box"><h3>確認する</h3><p>受付済・待ち・診察中など、運用に必要な状態。</p></div><div class="box"><h3>避ける</h3><p>権限外の変更、患者情報の画面外共有、実データを使ったデモ、秘密情報の転記。</p></div></div><div class="box soft"><h3>迷った場合</h3><p>Guide Center → System Check → Owner確認の順に戻ります。</p></div>''')
+          manual+=pg(7,'受付iPad｜受付業務に集中','''<img class="shot" src="assets/presentation/medical-ipad-screen.png"><div class="box"><p>受付iPadは受付業務に必要な情報へ集中させます。医院管理PCと同じ権限を前提にせず、設置場所・画面ロック・覗き見にも注意してください。</p></div>''')
+          manual+=pg(8,'System Check｜営業前・本番前の確認','''<div class="qrline box soft"><img src="'''+QR['systemcheck']+'''"><div><b>System Check</b><p class="muted">'''+SYSTEM_CHECK+'''</p></div></div><ol><li>環境と本番/デモ境界</li><li>必要な接続・権限</li><li>公開画面の導線</li><li>エラー・警告の有無</li><li>本番書込みガード</li></ol><p class="muted">エラーが残る状態で本番運用へ進めないでください。</p>''')
+          manual+=pg(9,'READY｜契約後の本番準備','''<div class="box"><h3>標準製品完成と契約者導入は別工程</h3><p>標準製品段階では実在テナント、実Ownerメール、実患者Authを作成しません。契約後にREADY／管理センターでテナント作成、Owner登録、本番切替を行います。</p></div><div class="grid2"><div class="box soft"><b>製品段階</b><p>DEMO・UI・API・DB・Tutorial・PDF・System Check・販売導線。</p></div><div class="box soft"><b>契約後</b><p>実テナント・実Owner・運用設定・本番確認。</p></div></div>''')
+          manual+=pg(10,'トラブル時 / FAQ','''<div class="grid2"><div class="box"><h3>画面が開かない</h3><p>URL、ログイン役割、通信、System Checkを確認。</p></div><div class="box"><h3>First10が途中</h3><p>Guide CenterからResume。必要ならReplay。</p></div><div class="box"><h3>表示が想定と違う</h3><p>診療科モデルと役割を確認。</p></div><div class="box"><h3>本番切替が不明</h3><p>READY工程で確認し、標準製品側へ実顧客情報を入れない。</p></div></div><div class="qrline box soft"><img src="'''+QR['guide']+'''"><div><b>最新版・First10</b><p class="muted">'''+GUIDE+'''</p></div></div><p class="muted">医療行為・診療判断・法令上必要な医療記録を本システムだけで代替しないでください。</p>''')
+          manual+='</body></html>'
+          write('DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.1.html',manual)
+
+          # Presentation standard manifest
+          manifest={
+           "standard":"DPRO_MEDICAL_PRESENTATION_STANDARD_V1.0",
+           "date":"2026-09-04",
+           "scope":"presentation_only",
+           "preserve":{"product_number":51,"system_core":True,"worker":True,"medical_supabase":True,"specialty_models":6,"role_screens":5},
+           "a4":{"master":"V2.0","sales_flyer_pages":1,"owner_experience_pages":1,"real_screen":True,"qr":True},
+           "lp":{"master":"V1.4","sections":[f"P{i}" for i in range(1,11)],"p4_html_css_diagram":True,"p9_real_screen":True},
+           "tutorial":{"standard":"V1.1","first10":10,"quick_start_pages":3,"detailed_manual_pages":10,"guide_center":True},
+           "pricing":"unverified_numeric_price_prohibited",
+           "customer_provisioning":"deferred_until_contract"
+          }
+          write('DPRO_MEDICAL_PRESENTATION_STANDARD_V1.0.json',json.dumps(manifest,ensure_ascii=False,indent=2))
+
+          # Render PDFs + responsive QA
+          outputs=[]
+          qa={"pages":{},"responsive":{},"protected_core":{},"files":{},"pass":True,"errors":[]}
+          with sync_playwright() as pw:
+              browser=pw.chromium.launch(headless=True)
+              page=browser.new_page()
+              pdf_jobs=[
+                ('DPRO_MEDICAL_A4_FLYER_MASTER_V2.0.html','DPRO_MEDICAL_A4_FLYER_MASTER_V2.0.pdf',1),
+                ('DPRO_MEDICAL_OWNER_EXPERIENCE_SHEET_V1.0.html','DPRO_MEDICAL_OWNER_EXPERIENCE_SHEET_V1.0.pdf',1),
+                ('DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.1.html','DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.1.pdf',3),
+                ('DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.1.html','DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.1.pdf',10),
+              ]
+              for h,p,expected in pdf_jobs:
+                  page.goto(f'http://127.0.0.1:8000/{h}',wait_until='domcontentloaded')
+                  page.wait_for_timeout(300)
+                  page.pdf(path=str(ROOT/p),format='A4',print_background=True,prefer_css_page_size=True,margin={"top":"0","right":"0","bottom":"0","left":"0"})
+                  outputs.append(p)
+              for target in ['lp.html','guide-center.html']:
+                  qa['responsive'][target]={}
+                  for width in [375,390,430,768,1280,1440]:
+                      p=browser.new_page(viewport={"width":width,"height":900})
+                      p.goto(f'http://127.0.0.1:8000/{target}',wait_until='domcontentloaded')
+                      p.wait_for_timeout(180)
+                      dims=p.evaluate('() => ({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth})')
+                      ok=dims['sw'] <= dims['cw'] + 1
+                      qa['responsive'][target][str(width)]={"pass":ok,**dims}
+                      if not ok: qa['pass']=False; qa['errors'].append(f'{target} horizontal overflow at {width}px')
+                      p.close()
+              browser.close()
+
+          from pypdf import PdfReader
+          expected_pages={
+           'DPRO_MEDICAL_A4_FLYER_MASTER_V2.0.pdf':1,
+           'DPRO_MEDICAL_OWNER_EXPERIENCE_SHEET_V1.0.pdf':1,
+           'DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.1.pdf':3,
+           'DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.1.pdf':10,
+          }
+          for p,n in expected_pages.items():
+              count=len(PdfReader(str(ROOT/p)).pages)
+              ok=count==n
+              qa['pages'][p]={"expected":n,"actual":count,"pass":ok}
+              if not ok: qa['pass']=False; qa['errors'].append(f'{p}: expected {n} pages, got {count}')
+
+          # Keep legacy PDF links valid with corrected content.
+          shutil.copy2(ROOT/'DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.1.pdf', ROOT/'DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.0.pdf')
+          shutil.copy2(ROOT/'DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.1.pdf', ROOT/'DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.0.pdf')
+
+          # Visual proof PNGs (first / all pages at modest resolution)
+          for pdf in expected_pages:
+              stem=Path(pdf).stem
+              prefix=ASSET/f'qa-{stem}'
+              subprocess.run(['pdftoppm','-png','-r','100',str(ROOT/pdf),str(prefix)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+
+          # Structural LP checks.
+          lp_text=(ROOT/'lp.html').read_text(encoding='utf-8')
+          for i in range(1,11):
+              token=f'id="p{i}"'
+              ok=token in lp_text
+              qa['files'][f'LP_P{i}']=ok
+              if not ok: qa['pass']=False; qa['errors'].append(f'LP missing P{i}')
+          qa['files']['LP_P4_HTML_CSS_DIAGRAM']='class="diagram"' in lp_text and 'id="p4"' in lp_text
+          qa['files']['LP_P9_REAL_SCREEN']='assets/presentation/medical-demo-desktop.png' in lp_text and 'id="p9"' in lp_text
+          qa['files']['GUIDE_FIRST10']=sum(1 for n,_,_ in FIRST10)==10 and 'FIRST10 / EXACTLY 10 STEPS' in guide
+          for k,v in qa['files'].items():
+              if not v: qa['pass']=False; qa['errors'].append(k)
+
+          # Protected core hash guard.
+          after={p:sha(p) for p in PROTECTED}
+          for p in PROTECTED:
+              ok=before[p]==after[p]
+              qa['protected_core'][p]={"before":before[p],"after":after[p],"pass":ok}
+              if not ok: qa['pass']=False; qa['errors'].append(f'protected core changed: {p}')
+
+          # File hashes.
+          for p in [
+           'guide-center.html','lp.html','DPRO_MEDICAL_A4_FLYER_MASTER_V2.0.html','DPRO_MEDICAL_A4_FLYER_MASTER_V2.0.pdf',
+           'DPRO_MEDICAL_OWNER_EXPERIENCE_SHEET_V1.0.html','DPRO_MEDICAL_OWNER_EXPERIENCE_SHEET_V1.0.pdf',
+           'DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.1.html','DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.1.pdf',
+           'DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.1.html','DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.1.pdf',
+           'DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.0.pdf','DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.0.pdf',
+           'DPRO_MEDICAL_PRESENTATION_STANDARD_V1.0.json']:
+              qa['files'][p]={"exists":(ROOT/p).exists(),"sha256":sha(p)}
+
+          write('DPRO_MEDICAL_PRESENTATION_QA_REPORT_V1.0.json',json.dumps(qa,ensure_ascii=False,indent=2))
+          md=['# DPRO MEDICAL PRESENTATION QA REPORT V1.0','',f"Overall: {'PASS' if qa['pass'] else 'FAIL'}",'', '## Scope','- Presentation only; product #51 / core / Worker / medical Supabase preserved.','- A4 MASTER V2.0: sales flyer 1 page + Owner experience sheet 1 page.','- LP MASTER V1.4: P1–P10.','- Tutorial STANDARD V1.1: First10=10 / Quick Start=3 pages / Detailed Manual=10 pages.','', '## PDF pages']
+          for p,d in qa['pages'].items(): md.append(f"- {p}: {d['actual']}/{d['expected']} {'PASS' if d['pass'] else 'FAIL'}")
+          md += ['', '## Responsive LP/Guide']
+          for p,widths in qa['responsive'].items():
+              md.append(f'- {p}: ' + ', '.join(f"{w}px={'PASS' if d['pass'] else 'FAIL'}" for w,d in widths.items()))
+          md += ['', '## Protected core']
+          md.append('- ' + ('PASS: protected files unchanged' if all(x['pass'] for x in qa['protected_core'].values()) else 'FAIL: protected file changed'))
+          md += ['', '## Final status', '- Automated QA is not COMPLETE FINAL LOCK. Human visual QA of A4/LP/PDF is still required after Pages deployment.']
+          if qa['errors']:
+              md += ['', '## Errors'] + [f'- {e}' for e in qa['errors']]
+          write('DPRO_MEDICAL_PRESENTATION_QA_REPORT_V1.0.md','\n'.join(md)+'\n')
+
+          server.shutdown()
+          if not qa['pass']:
+              print(json.dumps(qa,ensure_ascii=False,indent=2))
+              raise SystemExit('Presentation QA failed')
+          print('DPRO MEDICAL presentation build/automated QA: PASS')
+
+          PY
+          python /tmp/dpro_medical_presentation_build.py
+
+      - name: Commit presentation-only outputs
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add             guide-center.html lp.html             DPRO_MEDICAL_A4_FLYER_MASTER_V2.0.html             DPRO_MEDICAL_A4_FLYER_MASTER_V2.0.pdf             DPRO_MEDICAL_OWNER_EXPERIENCE_SHEET_V1.0.html             DPRO_MEDICAL_OWNER_EXPERIENCE_SHEET_V1.0.pdf             DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.1.html             DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.1.pdf             DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.1.html             DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.1.pdf             DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.0.pdf             DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.0.pdf             DPRO_MEDICAL_PRESENTATION_STANDARD_V1.0.json             DPRO_MEDICAL_PRESENTATION_QA_REPORT_V1.0.json             DPRO_MEDICAL_PRESENTATION_QA_REPORT_V1.0.md             assets/presentation
+          if git diff --cached --quiet; then
+            echo "No presentation changes to commit."
+            exit 0
+          fi
+          git commit -m "Repair DPRO MEDICAL presentation standard V1.0"
+          git push origin HEAD:main
