@@ -1,0 +1,200 @@
+{
+  "standard": "DPRO MEDICAL PRESENTATION CONFORMANCE V1.1.4",
+  "masters": {
+    "A4": "DPRO A4 FLYER MASTER V2.0",
+    "LP": "DPRO-LP-MASTER-V1.4",
+    "Tutorial": "DPRO TUTORIAL STANDARD V1.1"
+  },
+  "checks": {
+    "A4_REAL_INDUSTRY_PHOTO": true,
+    "A4_5,500円": true,
+    "A4_3,300円": true,
+    "A4_1,100円": true,
+    "A4_LINE相談": true,
+    "A4_DPRO SHOP公式": true,
+    "A4_LIVE DEMO": true,
+    "A4_入口は自由。管理は、ひとつ。": true,
+    "A4_6_FEATURES": true,
+    "A4_EXACT_CTA_URLS": true,
+    "LP_P1_P10_EXACT_ORDER": true,
+    "LP_P1_PHOTO": true,
+    "LP_P10_PHOTO": true,
+    "LP_P4_HTML_CSS_DIAGRAM": true,
+    "LP_P9_REAL_SCREEN": true,
+    "LP_PRICE_5,500円": true,
+    "LP_PRICE_3,300円": true,
+    "LP_PRICE_1,100円": true,
+    "GUIDE_REAL_START_API": true,
+    "GUIDE_START_RESUME_REPLAY": true,
+    "QUICK_FIRST10": true,
+    "MANUAL_患者スマホ": true,
+    "MANUAL_医院管理PC": true,
+    "MANUAL_受付iPad": true,
+    "MANUAL_スタッフ画面": true,
+    "MANUAL_医院HP": true,
+    "MANUAL_6診療パターン": true,
+    "MANUAL_System Check": true,
+    "MANUAL_安全・プライバシー": true,
+    "MANUAL_契約後の切替": true,
+    "A4_FINAL_PDF_QR_https://lin.ee/YxJGXV6D": true,
+    "A4_FINAL_PDF_QR_https://dpro-shop.com/": true,
+    "A4_FINAL_PDF_QR_https://dpromstk2000-lab.github.io/dpro-medical-standard/medical-public-demo.html": true
+  },
+  "pages": {
+    "DPRO_MEDICAL_A4_FLYER_MASTER_V2.0.pdf": {
+      "expected": 1,
+      "actual": 1,
+      "pass": true
+    },
+    "DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.1.pdf": {
+      "expected": 3,
+      "actual": 3,
+      "pass": true
+    },
+    "DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.1.pdf": {
+      "expected": 10,
+      "actual": 10,
+      "pass": true
+    }
+  },
+  "responsive": {
+    "lp.html": {
+      "375": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "pass": true
+      },
+      "390": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "pass": true
+      },
+      "430": {
+        "scrollWidth": 430,
+        "clientWidth": 430,
+        "pass": true
+      },
+      "768": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "pass": true
+      },
+      "1280": {
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "pass": true
+      },
+      "1440": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "pass": true
+      }
+    },
+    "guide-center.html": {
+      "375": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "pass": true
+      },
+      "390": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "pass": true
+      },
+      "430": {
+        "scrollWidth": 430,
+        "clientWidth": 430,
+        "pass": true
+      },
+      "768": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "pass": true
+      },
+      "1280": {
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "pass": true
+      },
+      "1440": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "pass": true
+      }
+    }
+  },
+  "qr_decoded": [
+    "https://dpromstk2000-lab.github.io/dpro-medical-standard/medical-public-demo.html",
+    "https://lin.ee/YxJGXV6D",
+    "https://dpro-shop.com/"
+  ],
+  "protected_core": {
+    "medical-public-demo.html": {
+      "before": "363413ba35615a8776bda1afec05d2f8137abccb6c7aed402b916a5e10396462",
+      "after": "363413ba35615a8776bda1afec05d2f8137abccb6c7aed402b916a5e10396462",
+      "pass": true
+    },
+    "medical-tutorial.js": {
+      "before": "0eef6791fd61543becf1ab682fcef28c2496cc780a6e9c1c30fee880a45ad9d6",
+      "after": "0eef6791fd61543becf1ab682fcef28c2496cc780a6e9c1c30fee880a45ad9d6",
+      "pass": true
+    },
+    "index.html": {
+      "before": "2e400b73dd3dcdda1d72d9bb85c9a442324b222a424814f7c08c408efb0996ac",
+      "after": "2e400b73dd3dcdda1d72d9bb85c9a442324b222a424814f7c08c408efb0996ac",
+      "pass": true
+    },
+    "member.html": {
+      "before": "a0966138d096ab07b377db1194e7ddffd3bb662009c8b5ee7dd7a3937387ca02",
+      "after": "a0966138d096ab07b377db1194e7ddffd3bb662009c8b5ee7dd7a3937387ca02",
+      "pass": true
+    },
+    "owner.html": {
+      "before": "64627cea018285db70c5f628c887fb937a5fa4ecd0ca1e44a1f0c9e9dae35e7d",
+      "after": "64627cea018285db70c5f628c887fb937a5fa4ecd0ca1e44a1f0c9e9dae35e7d",
+      "pass": true
+    },
+    "owner-ipad.html": {
+      "before": "f4f11902c1dc1315eec845d208aba5083ebc40ad27d36f39203937f9b740645a",
+      "after": "f4f11902c1dc1315eec845d208aba5083ebc40ad27d36f39203937f9b740645a",
+      "pass": true
+    },
+    "staff.html": {
+      "before": "784153ef45e08dc92d139a6561b76504ee6e771f5b54207962cd3c0708750997",
+      "after": "784153ef45e08dc92d139a6561b76504ee6e771f5b54207962cd3c0708750997",
+      "pass": true
+    },
+    "system-check.html": {
+      "before": "ff680dc463e819a9e5b87fd1bae6515a4902106b50cec1bc3d80a008ca4a1d07",
+      "after": "ff680dc463e819a9e5b87fd1bae6515a4902106b50cec1bc3d80a008ca4a1d07",
+      "pass": true
+    },
+    "patient-reservation.html": {
+      "before": "6ef6b18a79bffc7564edbf517e3cd99135510466cc820332e7f855bdc12a7b76",
+      "after": "6ef6b18a79bffc7564edbf517e3cd99135510466cc820332e7f855bdc12a7b76",
+      "pass": true
+    },
+    "patient-questionnaire.html": {
+      "before": "ea0952f9d12c4a5280734cdf199260f492697079996697edd286c6c6bf79b027",
+      "after": "ea0952f9d12c4a5280734cdf199260f492697079996697edd286c6c6bf79b027",
+      "pass": true
+    },
+    "patient-reception.html": {
+      "before": "0517ed2d38ee0e9acb39d04bf0b150542fef0649035705d66e2dc1ed1b2dd496",
+      "after": "0517ed2d38ee0e9acb39d04bf0b150542fef0649035705d66e2dc1ed1b2dd496",
+      "pass": true
+    },
+    "patient-wait-status.html": {
+      "before": "af204dba5c12f52c31b15585640fdaefb65feb02e19bdb848039f2455939bb1f",
+      "after": "af204dba5c12f52c31b15585640fdaefb65feb02e19bdb848039f2455939bb1f",
+      "pass": true
+    },
+    "patient-digital-card.html": {
+      "before": "03699fe8e5bd84f4862f28f5cd3bedd1eb0e1a57340e4094af4b16c95a6493f1",
+      "after": "03699fe8e5bd84f4862f28f5cd3bedd1eb0e1a57340e4094af4b16c95a6493f1",
+      "pass": true
+    }
+  },
+  "pass": true,
+  "errors": []
+}
