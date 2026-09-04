@@ -1,0 +1,263 @@
+name: DPRO MEDICAL LP Japanese Wrap Repair V1.2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dpro-medical-lp-japanese-wrap-v12
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Protect MEDICAL core
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            medical-public-demo.html \
+            medical-tutorial.js \
+            index.html \
+            member.html \
+            owner.html \
+            owner-ipad.html \
+            staff.html \
+            system-check.html \
+            patient-reservation.html \
+            patient-questionnaire.html \
+            patient-reception.html \
+            patient-wait-status.html \
+            patient-digital-card.html > /tmp/medical-core-before.sha256
+
+      - name: Repair Japanese headline wrapping
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/repair_wrap.py <<'PY'
+          from pathlib import Path
+
+          p = Path("lp.html")
+          s = p.read_text(encoding="utf-8")
+
+          replacements = [
+              (
+                  'h1{font-size:clamp(38px,6vw,70px);line-height:1.06;margin:14px 0}h2{font-size:clamp(28px,4vw,44px);line-height:1.2;margin:10px 0 18px}',
+                  'h1{font-size:clamp(40px,4.8vw,56px);line-height:1.08;margin:14px 0;letter-spacing:.01em;word-break:keep-all;overflow-wrap:normal}h2{font-size:clamp(28px,3vw,42px);line-height:1.22;margin:10px 0 18px;letter-spacing:.01em;word-break:keep-all;overflow-wrap:normal}.desktop-copy{display:block}.mobile-copy{display:none}.dline{display:block;white-space:nowrap}'
+              ),
+              (
+                  '.hero-grid,.cta-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:34px;align-items:center}',
+                  '.hero-grid{display:grid;grid-template-columns:1.18fr .82fr;gap:34px;align-items:center}.cta-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:34px;align-items:center}'
+              ),
+              (
+                  '@media(max-width:520px){.sec{padding:46px 0}.grid3{grid-template-columns:1fr}.actions .btn{width:100%}}',
+                  '@media(max-width:520px){.sec{padding:46px 0}.grid3{grid-template-columns:1fr}.actions .btn{width:100%}.desktop-copy{display:none}.mobile-copy{display:block}h1{font-size:clamp(27px,7.5vw,31px);line-height:1.14}h2{font-size:clamp(24px,6.8vw,29px);line-height:1.24}.mobile-copy .dline{white-space:nowrap}}'
+              ),
+
+              (
+                  '<h1>予約だけで終わらない。<br>患者と医院の流れを、ひとつに。</h1>',
+                  '<h1><span class="desktop-copy"><span class="dline">予約だけで終わらない。</span><span class="dline">患者と医院の流れを、</span><span class="dline">ひとつに。</span></span><span class="mobile-copy"><span class="dline">予約だけで終わらない。</span><span class="dline">患者と医院の流れを、</span><span class="dline">ひとつに。</span></span></h1>'
+              ),
+              (
+                  '<h2>こんなお悩みありませんか？</h2>',
+                  '<h2><span class="desktop-copy"><span class="dline">こんなお悩みありませんか？</span></span><span class="mobile-copy"><span class="dline">こんなお悩み、</span><span class="dline">ありませんか？</span></span></h2>'
+              ),
+              (
+                  '<h2>なぜ、問題が起きるのか。</h2>',
+                  '<h2><span class="desktop-copy"><span class="dline">なぜ、問題が起きるのか。</span></span><span class="mobile-copy"><span class="dline">なぜ、問題が</span><span class="dline">起きるのか。</span></span></h2>'
+              ),
+              (
+                  '<h2>入口は自由。管理は、ひとつ。</h2>',
+                  '<h2><span class="desktop-copy"><span class="dline">入口は自由。管理は、ひとつ。</span></span><span class="mobile-copy"><span class="dline">入口は自由。</span><span class="dline">管理は、ひとつ。</span></span></h2>'
+              ),
+              (
+                  '<h2>患者さんは、来院前から迷いにくい。</h2>',
+                  '<h2><span class="desktop-copy"><span class="dline">患者さんは、来院前から迷いにくい。</span></span><span class="mobile-copy"><span class="dline">患者さんは、</span><span class="dline">来院前から迷いにくい。</span></span></h2>'
+              ),
+              (
+                  '<h2>医院側は、役割ごとに必要な情報へ。</h2>',
+                  '<h2><span class="desktop-copy"><span class="dline">医院側は、役割ごとに必要な情報へ。</span></span><span class="mobile-copy"><span class="dline">医院側は、役割ごとに</span><span class="dline">必要な情報へ。</span></span></h2>'
+              ),
+              (
+                  '<h2>導入前と導入後。</h2>',
+                  '<h2><span class="desktop-copy"><span class="dline">導入前と導入後。</span></span><span class="mobile-copy"><span class="dline">導入前と導入後。</span></span></h2>'
+              ),
+              (
+                  '<h2>3つまとめて月額5,500円（税込）。</h2>',
+                  '<h2><span class="desktop-copy"><span class="dline">3つまとめて月額5,500円（税込）。</span></span><span class="mobile-copy"><span class="dline">3つまとめて</span><span class="dline">月額5,500円（税込）。</span></span></h2>'
+              ),
+              (
+                  '<h2>実際のMEDICAL画面で確認。</h2>',
+                  '<h2><span class="desktop-copy"><span class="dline">実際のMEDICAL画面で確認。</span></span><span class="mobile-copy"><span class="dline">実際のMEDICAL画面で</span><span class="dline">確認。</span></span></h2>'
+              ),
+              (
+                  '<h2>まずはLINEで、お気軽にご相談ください。</h2>',
+                  '<h2><span class="desktop-copy"><span class="dline">まずはLINEで、</span><span class="dline">お気軽にご相談ください。</span></span><span class="mobile-copy"><span class="dline">まずはLINEで、</span><span class="dline">お気軽にご相談ください。</span></span></h2>'
+              ),
+          ]
+
+          for old, new in replacements:
+              n = s.count(old)
+              if n != 1:
+                  raise SystemExit(f"EXPECTED_ONE_REPLACEMENT_FAILED: {old[:80]!r} count={n}")
+              s = s.replace(old, new, 1)
+
+          # Guard against the former bad semantic split.
+          forbidden = [
+              "予約だけで終わら<br>",
+              "予約だけで終わらない。<br>患者と医院の流れを、ひとつに。",
+          ]
+          for x in forbidden:
+              if x in s:
+                  raise SystemExit(f"FORBIDDEN_WRAP_REMAINS: {x}")
+
+          p.write_text(s, encoding="utf-8")
+          PY
+          python /tmp/repair_wrap.py
+
+      - name: Install visual QA tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet playwright
+          python -m playwright install --with-deps chromium >/dev/null
+
+      - name: Run DPRO Japanese wrap visual QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 >/tmp/medical-wrap-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill ${SERVER_PID} >/dev/null 2>&1 || true' EXIT
+          sleep 2
+
+          cat > /tmp/qa_wrap.py <<'PY'
+          from pathlib import Path
+          import json
+          from playwright.sync_api import sync_playwright
+
+          widths = [375, 390, 430, 768, 1280, 1440]
+          results = {}
+          errors = []
+
+          Path("assets/presentation").mkdir(parents=True, exist_ok=True)
+
+          with sync_playwright() as pw:
+              browser = pw.chromium.launch()
+              for width in widths:
+                  page = browser.new_page(viewport={"width": width, "height": 1000}, device_scale_factor=1)
+                  page.goto("http://127.0.0.1:8765/lp.html", wait_until="networkidle", timeout=30000)
+
+                  dims = page.evaluate("""() => ({
+                    scrollWidth: document.documentElement.scrollWidth,
+                    clientWidth: document.documentElement.clientWidth
+                  })""")
+                  overflow_ok = dims["scrollWidth"] <= dims["clientWidth"]
+
+                  visible_class = "mobile-copy" if width <= 520 else "desktop-copy"
+                  lines = page.locator(f".{visible_class} .dline")
+                  line_checks = []
+                  for i in range(lines.count()):
+                      el = lines.nth(i)
+                      data = el.evaluate("""el => ({
+                        text: el.textContent.trim(),
+                        scrollWidth: el.scrollWidth,
+                        clientWidth: el.clientWidth,
+                        display: getComputedStyle(el).display
+                      })""")
+                      ok = data["scrollWidth"] <= data["clientWidth"] + 1
+                      data["pass"] = ok
+                      line_checks.append(data)
+                      if not ok:
+                          errors.append(f"LINE_OVERFLOW_{width}_{data['text']}")
+
+                  p1_count = page.locator(f"#p1 .{visible_class} .dline").count()
+                  p10_count = page.locator(f"#p10 .{visible_class} .dline").count()
+                  counts_ok = (p1_count == 3 and p10_count == 2)
+                  if not counts_ok:
+                      errors.append(f"SEMANTIC_LINE_COUNT_{width}_P1={p1_count}_P10={p10_count}")
+
+                  if not overflow_ok:
+                      errors.append(f"PAGE_OVERFLOW_{width}_{dims['scrollWidth']}>{dims['clientWidth']}")
+
+                  results[str(width)] = {
+                      "page_overflow_pass": overflow_ok,
+                      "scrollWidth": dims["scrollWidth"],
+                      "clientWidth": dims["clientWidth"],
+                      "semantic_line_count_pass": counts_ok,
+                      "p1_lines": p1_count,
+                      "p10_lines": p10_count,
+                      "headline_lines": line_checks,
+                  }
+
+                  if width in (390, 1440):
+                      page.screenshot(
+                          path=f"assets/presentation/qa-wrap-v12-{width}.png",
+                          full_page=True
+                      )
+                  page.close()
+
+              browser.close()
+
+          report = {
+              "standard": "DPRO MEDICAL LP JAPANESE WRAP V1.2",
+              "rule": "meaning-unit-fixed-wrap / desktop-mobile-specific / browser-auto-split-prohibited",
+              "viewports": results,
+              "pass": not errors,
+              "errors": errors,
+          }
+          Path("DPRO_MEDICAL_LP_WRAP_QA_V1.2.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2),
+              encoding="utf-8"
+          )
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          if errors:
+              raise SystemExit(1)
+          PY
+
+          python /tmp/qa_wrap.py
+
+      - name: Verify core unchanged and scope locked
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum -c /tmp/medical-core-before.sha256
+
+          git status --short
+          changed="$(git status --short | awk '{print $2}' | sort)"
+          allowed="$(printf '%s\n' \
+            DPRO_MEDICAL_LP_WRAP_QA_V1.2.json \
+            assets/presentation/qa-wrap-v12-1440.png \
+            assets/presentation/qa-wrap-v12-390.png \
+            lp.html | sort)"
+          if [ "$changed" != "$allowed" ]; then
+            echo "Unexpected changed files."
+            echo "--- changed ---"
+            printf '%s\n' "$changed"
+            echo "--- allowed ---"
+            printf '%s\n' "$allowed"
+            exit 1
+          fi
+
+      - name: Commit MEDICAL LP wrap repair V1.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lp.html \
+            DPRO_MEDICAL_LP_WRAP_QA_V1.2.json \
+            assets/presentation/qa-wrap-v12-1440.png \
+            assets/presentation/qa-wrap-v12-390.png
+          git commit -m "Repair DPRO MEDICAL LP Japanese wrapping V1.2"
+          git push origin HEAD:main
