@@ -1,0 +1,46 @@
+{
+  "standard": "DPRO_MEDICAL_PRESENTATION_STANDARD_V1.0",
+  "date": "2026-09-04",
+  "scope": "presentation_only",
+  "preserve": {
+    "product_number": 51,
+    "system_core": true,
+    "worker": true,
+    "medical_supabase": true,
+    "specialty_models": 6,
+    "role_screens": 5
+  },
+  "a4": {
+    "master": "V2.0",
+    "sales_flyer_pages": 1,
+    "owner_experience_pages": 1,
+    "real_screen": true,
+    "qr": true
+  },
+  "lp": {
+    "master": "V1.4",
+    "sections": [
+      "P1",
+      "P2",
+      "P3",
+      "P4",
+      "P5",
+      "P6",
+      "P7",
+      "P8",
+      "P9",
+      "P10"
+    ],
+    "p4_html_css_diagram": true,
+    "p9_real_screen": true
+  },
+  "tutorial": {
+    "standard": "V1.1",
+    "first10": 10,
+    "quick_start_pages": 3,
+    "detailed_manual_pages": 10,
+    "guide_center": true
+  },
+  "pricing": "unverified_numeric_price_prohibited",
+  "customer_provisioning": "deferred_until_contract"
+}
