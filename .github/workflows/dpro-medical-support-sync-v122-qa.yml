@@ -1,0 +1,82 @@
+name: DPRO MEDICAL Support Sync V1.2.2 QA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  support-sync-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Verify frozen Tutorial and Core blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_blob() {
+            path="$1"; expected="$2"
+            actual="$(git hash-object "$path")"
+            echo "$path $actual"
+            test "$actual" = "$expected"
+          }
+          check_blob medical-tutorial.js ec43734c88c4b3be9941de0d5709094329a2fd17
+          check_blob medical-public-demo.html c363c326399b0117d40ae5d48ba230c3cd929e2e
+          check_blob index.html 405e40f0d38f8c64a2df2cd4b4f4d052cf67663e
+          check_blob owner.html 1f4bf577e758f6c540fa612f26ae04c0ef3db190
+          check_blob member.html 40f1c069ae3e6b7918f9fb454ec69f9268f1c5e1
+          check_blob staff.html b522d4e21c1474386d17fe9f1c161cf0177f740f
+          check_blob owner-ipad.html 13cdb378b79044af452e62cb61086316133786a5
+          check_blob system-check.html dfb704190de2f21deac7ce3313b40447c4d30782
+          check_blob config.js f40c3dea67031a41e861db74ada545a3790075d3
+
+      - name: Verify support content contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f guide-center.html
+          test -f DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.2.2.html
+          test -f DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.2.2.pdf
+          test -f DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.2.2.html
+          test -f DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.2.2.pdf
+          grep -q 'DPRO_TUTORIAL_NAVIGATION_V1.2.2' guide-center.html
+          grep -q 'First10 - exactly 10' guide-center.html
+          grep -q 'TARGET_MISSING' guide-center.html
+          grep -q '再試行' guide-center.html
+          grep -q '業務操作は自動実行しない' guide-center.html
+          grep -q 'DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.2.2.pdf' guide-center.html
+          grep -q 'DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.2.2.pdf' guide-center.html
+          grep -q 'TARGET_MISSING' DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.2.2.html
+          grep -q 'TARGET_MISSING' DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.2.2.html
+
+      - name: Verify PDF page counts
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils
+          quick_pages="$(pdfinfo DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.2.2.pdf | awk '/^Pages:/ {print $2}')"
+          detailed_pages="$(pdfinfo DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.2.2.pdf | awk '/^Pages:/ {print $2}')"
+          echo "Quick pages=$quick_pages"
+          echo "Detailed pages=$detailed_pages"
+          test "$quick_pages" = "3"
+          test "$detailed_pages" = "10"
+
+      - name: Verify QA evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          root='presentation-qa/support-sync-v1.2.2'
+          test -f "$root/GUIDE_CENTER_RUNTIME_QA.json"
+          test -f "$root/QUICK_START_QA.json"
+          test -f "$root/DETAILED_MANUAL_QA.json"
+          test -f "$root/PDF_QR_DECODE_EVIDENCE.txt"
+          test -f "$root/TUTORIAL_FREEZE_EVIDENCE.txt"
+          grep -q 'Decode failures: 0' "$root/PDF_QR_DECODE_EVIDENCE.txt"
+          grep -q 'ALL_PASS=True' "$root/TUTORIAL_FREEZE_EVIDENCE.txt"
