@@ -1,363 +1,48 @@
-(function (global, document) {
-  'use strict';
-
-  const VERSION = 'DPRO MEDICAL TUTORIAL STANDARD V1.1 / R4';
-  const STORAGE_KEY = 'dpro-tutorial:medical:first10';
-  const STEP_PREFIX = 'dpro-tutorial:medical:first10:';
-  const MARGIN = 8;
-
-  const STEPS = Object.freeze([
-    {id:'medical-first10-01-start-tour',order:1,selector:'.hero-btn.primary[onclick="startTour()"]',fallback:['.hero-actions .hero-btn.primary','.hero'],title:'30秒体験を開始',copy:'公開DEMOの30秒導線を開始し、患者・医院・診療科の見方を確認します。',anchor:'#tour'},
-    {id:'medical-first10-02-patient-tour',order:2,selector:'#tour1 button',fallback:['#tour1','#tour'],title:'患者スマホを開く',copy:'患者側の画面例へ切り替え、予約・問診・受付がまとまる入口を確認します。',anchor:'#tour'},
-    {id:'medical-first10-03-owner-tour',order:3,selector:'#tour2 button',fallback:['#tour2','#tour'],title:'医院管理PCを見る',copy:'医院側の管理画面例へ切り替え、患者側と医院側が同じ流れでつながる構成を確認します。',anchor:'#tour'},
-    {id:'medical-first10-04-compare-presets',order:4,selector:'#tour3 button',fallback:['#presets','.preset-zone'],title:'6診療科モデルを比較',copy:'STANDARD・眼科・小児科など、共通基盤の上で診療科ごとの違いを比較します。',anchor:'#presets'},
-    {id:'medical-first10-05-eye-preset',order:5,selector:'.preset-card[data-preset="EYE"]',fallback:['#presetGrid','#presets'],title:'眼科PRESETへ切替',copy:'眼科モデルへ切り替え、検査進行・手術案内・術後フォローなどの表示差分を確認します。',anchor:'#viewer'},
-    {id:'medical-first10-06-patient-role',order:6,selector:'.role-card[data-role="patient"]',fallback:['#roleTabs','#roles'],title:'患者画面の役割を確認',copy:'患者スマホの役割を表示し、予約・問診・受付の入口が患者向けに整理されていることを確認します。',anchor:'#viewer'},
-    {id:'medical-first10-07-owner-role',order:7,selector:'.role-card[data-role="owner"]',fallback:['#roleTabs','#roles'],title:'医院管理PCの役割を確認',copy:'医院管理PCの画面例へ切り替え、予約・受付・待ち・診察中などの全体把握を確認します。',anchor:'#viewer'},
-    {id:'medical-first10-08-ipad-role',order:8,selector:'.role-card[data-role="ipad"]',fallback:['#roleTabs','#roles'],title:'受付iPadの役割を確認',copy:'受付iPadの画面例へ切り替え、受付業務に必要な情報へ集中した構成を確認します。',anchor:'#viewer'},
-    {id:'medical-first10-09-staff-role',order:9,selector:'.role-card[data-role="staff"]',fallback:['#roleTabs','#roles'],title:'スタッフ画面の役割を確認',copy:'スタッフ画面例へ切り替え、院内進行と担当業務を確認します。',anchor:'#viewer'},
-    {id:'medical-first10-10-hp-role',order:10,selector:'.role-card[data-role="hp"]',fallback:['#roleTabs','#roles'],title:'医院HPの公開境界を確認',copy:'医院HPの画面例へ切り替え、公開可能な予約導線・待ち状況・お知らせの見せ方を確認します。',anchor:'#viewer'}
-  ].map(x => Object.freeze(Object.assign({}, x, {resumeKey: STEP_PREFIX + String(x.order).padStart(2,'0')}))));
-
-  let state = loadState();
-  let ui = null;
-  let activeTarget = null;
-  let targetSource = 'none';
-  let refreshRaf = 0;
-
-  function safeParse(raw) {
-    try { return raw ? JSON.parse(raw) : null; } catch (_) { return null; }
-  }
-  function normalizedState(value) {
-    const s = value && typeof value === 'object' ? value : {};
-    const step = Math.max(0, Math.min(STEPS.length - 1, Number.isInteger(s.step) ? s.step : 0));
-    const status = ['idle','active','completed','skipped'].includes(s.status) ? s.status : 'idle';
-    return {step, status, updatedAt: String(s.updatedAt || '')};
-  }
-  function loadState() {
-    let found = safeParse(localStorage.getItem(STORAGE_KEY));
-    if (found) return normalizedState(found);
-    for (let i = STEPS.length; i >= 1; i--) {
-      const candidate = safeParse(localStorage.getItem(STEP_PREFIX + String(i).padStart(2,'0')));
-      if (candidate) return normalizedState(candidate);
-    }
-    return {step:0,status:'idle',updatedAt:''};
-  }
-  function persist() {
-    state.updatedAt = new Date().toISOString();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    for (const step of STEPS) localStorage.removeItem(step.resumeKey);
-    if (state.status === 'active') localStorage.setItem(STEPS[state.step].resumeKey, JSON.stringify(state));
-    refreshLauncher();
-  }
-  function injectStyle() {
-    if (document.getElementById('dpro-medical-tutorial-style')) return;
-    const style = document.createElement('style');
-    style.id = 'dpro-medical-tutorial-style';
-    style.textContent = `
-#dpro-tutorial-launcher{position:fixed;right:12px;bottom:76px;z-index:2147483600;min-height:44px;border:0;border-radius:999px;padding:0 15px;background:#102d45;color:#fff;font-weight:900;box-shadow:0 10px 28px rgba(0,0,0,.22);cursor:pointer;max-width:calc(100vw - 24px)}
-#dpro-tutorial-launcher:focus-visible,#dpro-tutorial-launcher:focus,.dpro-tutorial-card button:focus-visible,.dpro-tutorial-card button:focus,.dpro-tutorial-drag:focus-visible,.dpro-tutorial-drag:focus{outline:3px solid #ffbf47;outline-offset:3px}
-.dpro-tutorial-card{position:fixed;right:14px;top:14px;z-index:2147483601;width:min(370px,calc(100vw - 20px));max-height:calc(100vh - 20px);overflow:auto;background:#fff;color:#15324a;border:1px solid #bfd0dc;border-radius:18px;box-shadow:0 18px 54px rgba(7,32,49,.28);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}
-.dpro-tutorial-drag{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:#102d45;color:#fff;border-radius:17px 17px 0 0;cursor:grab;touch-action:none;user-select:none;font-weight:900}
-.dpro-tutorial-drag:active{cursor:grabbing}.dpro-tutorial-drag small{font-size:11px;opacity:.8;font-weight:700}.dpro-tutorial-body{padding:15px}.dpro-tutorial-progress{font-size:12px;color:#1769aa;font-weight:900;letter-spacing:.05em}.dpro-tutorial-title{font-size:19px;line-height:1.35;margin:6px 0 8px}.dpro-tutorial-copy{font-size:14px;line-height:1.7;color:#476278;margin:0}.dpro-tutorial-target-status{margin-top:10px;padding:8px 10px;border-radius:10px;background:#eef6fb;font-size:12px;color:#38566d}.dpro-tutorial-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.dpro-tutorial-actions button{min-height:40px;border:1px solid #c8d8e3;border-radius:10px;background:#fff;color:#15324a;padding:0 12px;font-weight:850;cursor:pointer}.dpro-tutorial-actions button[data-primary="1"]{background:#1769aa;color:#fff;border-color:#1769aa}.dpro-tutorial-actions button:disabled{opacity:.42;cursor:not-allowed}.dpro-tutorial-close{border:0!important;background:transparent!important;color:#fff!important;padding:0 4px!important;min-height:30px!important;font-size:20px}.dpro-tutorial-highlight{position:fixed;z-index:2147483598;pointer-events:none;border:3px solid #1769aa;border-radius:12px;box-shadow:0 0 0 5px rgba(23,105,170,.15),0 0 0 9999px rgba(8,30,45,.08);transition:left .16s ease,top .16s ease,width .16s ease,height .16s ease}.dpro-tutorial-highlight[data-fallback="1"]{border-style:dashed}.dpro-tutorial-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-@media(max-width:520px){#dpro-tutorial-launcher{bottom:72px;right:10px}.dpro-tutorial-card{top:10px;right:10px;width:calc(100vw - 20px);max-height:calc(100vh - 20px)}.dpro-tutorial-actions{display:grid;grid-template-columns:1fr 1fr}.dpro-tutorial-actions button{width:100%}}
-`;
-    document.head.appendChild(style);
-  }
-  function buildUI() {
-    if (ui) return ui;
-    injectStyle();
-    const launcher = document.createElement('button');
-    launcher.id = 'dpro-tutorial-launcher';
-    launcher.type = 'button';
-    launcher.setAttribute('aria-controls','dpro-tutorial-card');
-    launcher.addEventListener('click', () => {
-      if (state.status === 'active') resume();
-      else if (state.status === 'completed' || state.status === 'skipped') replay();
-      else start();
-    });
-
-    const card = document.createElement('section');
-    card.id = 'dpro-tutorial-card';
-    card.className = 'dpro-tutorial-card';
-    card.hidden = true;
-    card.setAttribute('role','dialog');
-    card.setAttribute('aria-modal','false');
-    card.setAttribute('aria-labelledby','dpro-tutorial-title');
-    card.innerHTML = `
-      <div class="dpro-tutorial-drag" tabindex="0" aria-label="操作ガイドをドラッグして移動">
-        <span>DPRO MEDICAL 操作ガイド <small>⋮⋮ ドラッグ</small></span>
-        <button class="dpro-tutorial-close" type="button" aria-label="操作ガイドを閉じる">×</button>
-      </div>
-      <div class="dpro-tutorial-body">
-        <div class="dpro-tutorial-progress"></div>
-        <h2 class="dpro-tutorial-title" id="dpro-tutorial-title"></h2>
-        <p class="dpro-tutorial-copy"></p>
-        <div class="dpro-tutorial-target-status" aria-live="polite"></div>
-        <div class="dpro-tutorial-actions">
-          <button type="button" data-action="back">戻る</button>
-          <button type="button" data-action="next" data-primary="1">次へ</button>
-          <button type="button" data-action="skip">スキップ</button>
-          <button type="button" data-action="close">閉じる</button>
-        </div>
-        <div class="dpro-tutorial-sr" aria-live="assertive"></div>
-      </div>`;
-    const highlight = document.createElement('div');
-    highlight.className = 'dpro-tutorial-highlight';
-    highlight.hidden = true;
-
-    document.body.append(launcher, highlight, card);
-    ui = {
-      launcher, card, highlight,
-      drag: card.querySelector('.dpro-tutorial-drag'),
-      closeTop: card.querySelector('.dpro-tutorial-close'),
-      progress: card.querySelector('.dpro-tutorial-progress'),
-      title: card.querySelector('.dpro-tutorial-title'),
-      copy: card.querySelector('.dpro-tutorial-copy'),
-      targetStatus: card.querySelector('.dpro-tutorial-target-status'),
-      sr: card.querySelector('.dpro-tutorial-sr'),
-      back: card.querySelector('[data-action="back"]'),
-      next: card.querySelector('[data-action="next"]'),
-      skip: card.querySelector('[data-action="skip"]'),
-      close: card.querySelector('[data-action="close"]')
-    };
-    ui.closeTop.addEventListener('click', close);
-    ui.close.addEventListener('click', close);
-    ui.back.addEventListener('click', back);
-    ui.next.addEventListener('click', next);
-    ui.skip.addEventListener('click', skip);
-    installDrag();
-    refreshLauncher();
-    return ui;
-  }
-  function refreshLauncher() {
-    if (!ui) return;
-    const label = state.status === 'active' ? `操作ガイドを再開（${state.step + 1}/10）` :
-      (state.status === 'completed' || state.status === 'skipped') ? '操作ガイドをもう一度見る' : '操作ガイドを開始';
-    ui.launcher.textContent = label;
-    ui.launcher.setAttribute('aria-label', label);
-  }
-  function elementVisible(el) {
-    if (!el || !el.isConnected) return false;
-    const cs = global.getComputedStyle(el);
-    const r = el.getBoundingClientRect();
-    return cs.display !== 'none' && cs.visibility !== 'hidden' && Number(cs.opacity || 1) !== 0 && r.width > 0 && r.height > 0;
-  }
-  function resolveTarget(step) {
-    const candidates = [step.selector].concat(step.fallback || []);
-    for (let i = 0; i < candidates.length; i++) {
-      let el = null;
-      try { el = document.querySelector(candidates[i]); } catch (_) { el = null; }
-      if (elementVisible(el)) return {el, source:i === 0 ? 'primary' : `fallback-${i}`};
-    }
-    return {el:null, source:'missing'};
-  }
-  function targetInViewport(el) {
-    const r = el.getBoundingClientRect();
-    return r.bottom >= 6 && r.right >= 6 && r.top <= global.innerHeight - 6 && r.left <= global.innerWidth - 6;
-  }
-  function moveHighlight() {
-    refreshRaf = 0;
-    if (!ui || ui.card.hidden || !activeTarget || !activeTarget.isConnected || !elementVisible(activeTarget)) {
-      if (ui) ui.highlight.hidden = true;
-      return;
-    }
-    const r = activeTarget.getBoundingClientRect();
-    const pad = 5;
-    const left = Math.max(2, r.left - pad);
-    const top = Math.max(2, r.top - pad);
-    const right = Math.min(global.innerWidth - 2, r.right + pad);
-    const bottom = Math.min(global.innerHeight - 2, r.bottom + pad);
-    ui.highlight.style.left = left + 'px';
-    ui.highlight.style.top = top + 'px';
-    ui.highlight.style.width = Math.max(0, right - left) + 'px';
-    ui.highlight.style.height = Math.max(0, bottom - top) + 'px';
-    ui.highlight.dataset.fallback = targetSource === 'primary' ? '0' : '1';
-    ui.highlight.hidden = false;
-  }
-  function scheduleHighlight() {
-    if (!refreshRaf) refreshRaf = global.requestAnimationFrame(moveHighlight);
-  }
-  function clampCard() {
-    if (!ui || ui.card.hidden) return;
-    const r = ui.card.getBoundingClientRect();
-    let left = r.left, top = r.top;
-    const maxLeft = Math.max(MARGIN, global.innerWidth - r.width - MARGIN);
-    const maxTop = Math.max(MARGIN, global.innerHeight - r.height - MARGIN);
-    left = Math.min(maxLeft, Math.max(MARGIN, left));
-    top = Math.min(maxTop, Math.max(MARGIN, top));
-    if (Math.abs(left - r.left) > .5 || Math.abs(top - r.top) > .5) {
-      ui.card.style.right = 'auto'; ui.card.style.bottom = 'auto';
-      ui.card.style.left = left + 'px'; ui.card.style.top = top + 'px';
-    }
-  }
-  function renderStep(options) {
-    buildUI();
-    const step = STEPS[state.step];
-    ui.card.hidden = false;
-    ui.progress.textContent = `STEP ${String(step.order).padStart(2,'0')} / 10`;
-    ui.title.textContent = step.title;
-    ui.copy.textContent = step.copy;
-    ui.back.disabled = state.step === 0;
-    ui.next.textContent = state.step === STEPS.length - 1 ? '完了' : '次へ';
-
-    const resolved = resolveTarget(step);
-    activeTarget = resolved.el;
-    targetSource = resolved.source;
-    ui.targetStatus.textContent = activeTarget ?
-      (targetSource === 'primary' ? '対象を青枠で表示しています。操作は自動実行しません。' : '対象が見つからないため、安全な表示領域を青い点線で案内しています。') :
-      '対象を表示できません。操作は実行せず、この説明だけで続行できます。';
-    if (activeTarget && !targetInViewport(activeTarget)) {
-      activeTarget.scrollIntoView({behavior:'auto',block:'center',inline:'nearest'});
-    }
-    scheduleHighlight();
-    clampCard();
-    ui.sr.textContent = `ステップ${step.order}、${step.title}`;
-    if (!options || options.focus !== false) global.setTimeout(() => ui.next.focus({preventScroll:true}), 0);
-  }
-  function setActive(stepIndex) {
-    state = {step:Math.max(0,Math.min(STEPS.length - 1,stepIndex)),status:'active',updatedAt:''};
-    persist();
-    renderStep();
-    return snapshot();
-  }
-  function start() { return setActive(0); }
-  function resume() {
-    if (state.status !== 'active') return start();
-    persist(); renderStep(); return snapshot();
-  }
-  function replay() { return setActive(0); }
-  function next() {
-    if (state.status !== 'active') return start();
-    if (state.step >= STEPS.length - 1) {
-      state.status = 'completed'; persist(); close(false); return snapshot();
-    }
-    return setActive(state.step + 1);
-  }
-  function back() {
-    if (state.status !== 'active') return start();
-    return setActive(Math.max(0, state.step - 1));
-  }
-  function skip() {
-    state.status = 'skipped'; persist(); close(false); return snapshot();
-  }
-  function close(returnFocus) {
-    if (!ui) return snapshot();
-    ui.card.hidden = true; ui.highlight.hidden = true; activeTarget = null;
-    if (returnFocus !== false) global.setTimeout(() => ui.launcher.focus({preventScroll:true}), 0);
-    return snapshot();
-  }
-  function goTo(index) {
-    const n = Number(index);
-    if (!Number.isFinite(n)) return snapshot();
-    return setActive(Math.max(0, Math.min(STEPS.length - 1, Math.trunc(n))));
-  }
-  function snapshot() {
-    return Object.freeze({step:state.step,status:state.status,updatedAt:state.updatedAt,stepId:STEPS[state.step]?.id || null,targetSource});
-  }
-  function installDrag() {
-    const handle = ui.drag;
-    let drag = null;
-    handle.addEventListener('pointerdown', e => {
-      if (e.button !== undefined && e.button !== 0) return;
-      if (e.target.closest('button,a,input,select,textarea')) return;
-      const r = ui.card.getBoundingClientRect();
-      drag = {id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top};
-      ui.card.style.right = 'auto'; ui.card.style.bottom = 'auto';
-      try { handle.setPointerCapture(e.pointerId); } catch (_) {}
-      e.preventDefault();
-    });
-    handle.addEventListener('pointermove', e => {
-      if (!drag || e.pointerId !== drag.id) return;
-      const r = ui.card.getBoundingClientRect();
-      const maxLeft = Math.max(MARGIN, global.innerWidth - r.width - MARGIN);
-      const maxTop = Math.max(MARGIN, global.innerHeight - r.height - MARGIN);
-      const left = Math.min(maxLeft, Math.max(MARGIN, e.clientX - drag.dx));
-      const top = Math.min(maxTop, Math.max(MARGIN, e.clientY - drag.dy));
-      ui.card.style.left = left + 'px'; ui.card.style.top = top + 'px';
-      e.preventDefault();
-    });
-    function end(e) {
-      if (!drag || (e.pointerId !== undefined && e.pointerId !== drag.id)) return;
-      try { handle.releasePointerCapture(drag.id); } catch (_) {}
-      drag = null; clampCard();
-    }
-    handle.addEventListener('pointerup', end);
-    handle.addEventListener('pointercancel', end);
-  }
-
-  function init() {
-    buildUI();
-    global.addEventListener('resize', () => { clampCard(); scheduleHighlight(); }, {passive:true});
-    global.addEventListener('scroll', scheduleHighlight, {passive:true,capture:true});
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && ui && !ui.card.hidden) { e.preventDefault(); close(); }
-    });
-  }
-
-  global.DPROMedicalTutorial = Object.freeze({
-    version: VERSION,
-    storageKey: STORAGE_KEY,
-    steps: STEPS,
-    state: snapshot,
-    start, resume, replay, next, back, skip, close, goTo,
-    open: resume
-  });
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once:true});
-  else init();
-})(window, document);
-
-
-(function (global, document) {
-  'use strict';
-  const T = global.DPROMedicalTutorial;
-  if (!T || !Array.isArray(T.steps) || T.steps.length !== 10) return;
-  const GUIDE_VERSION = 'DPRO MEDICAL GUIDE CENTER STANDARD V1.1 / R4';
-  let ui = null;
-
-  function style() {
-    if (document.getElementById('dpro-medical-guide-style')) return;
-    const s=document.createElement('style');
-    s.id='dpro-medical-guide-style';
-    s.textContent=`
-#dpro-guide-launcher{position:fixed;left:12px;bottom:76px;z-index:2147483600;min-height:44px;border:0;border-radius:999px;padding:0 15px;background:#fff;color:#102d45;border:1px solid #b9cbd8;font-weight:900;box-shadow:0 10px 28px rgba(0,0,0,.16);cursor:pointer;max-width:calc(100vw - 24px)}
-#dpro-guide-launcher:focus,#dpro-guide-launcher:focus-visible,.dpro-guide-panel button:focus,.dpro-guide-panel button:focus-visible{outline:3px solid #ffbf47;outline-offset:3px}
-.dpro-guide-panel{position:fixed;inset:18px;z-index:2147483602;width:min(920px,calc(100vw - 36px));height:min(760px,calc(100vh - 36px));margin:auto;overflow:auto;background:#f7fafc;color:#15324a;border:1px solid #b9cbd8;border-radius:20px;box-shadow:0 24px 80px rgba(7,32,49,.34);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}
-.dpro-guide-head{position:sticky;top:0;z-index:2;background:#102d45;color:#fff;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:10px}.dpro-guide-head h2{font-size:20px;margin:0}.dpro-guide-head button{min-height:38px;border:1px solid rgba(255,255,255,.35);border-radius:10px;background:transparent;color:#fff;padding:0 12px;font-weight:850;cursor:pointer}.dpro-guide-body{padding:16px}.dpro-guide-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.dpro-guide-controls button{min-height:42px;border:1px solid #c7d8e3;border-radius:11px;background:#fff;color:#15324a;padding:0 14px;font-weight:900;cursor:pointer}.dpro-guide-controls button[data-primary="1"]{background:#1769aa;color:#fff;border-color:#1769aa}.dpro-guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.dpro-guide-item{background:#fff;border:1px solid #d5e2eb;border-radius:15px;padding:14px}.dpro-guide-item small{display:block;color:#1769aa;font-weight:900}.dpro-guide-item h3{font-size:16px;margin:5px 0 7px}.dpro-guide-item p{font-size:13px;line-height:1.6;color:#536d81;margin:0 0 10px}.dpro-guide-item button{min-height:38px;border:1px solid #c7d8e3;border-radius:10px;background:#fff;color:#1769aa;padding:0 12px;font-weight:900;cursor:pointer}.dpro-guide-note{font-size:12px;color:#60788b;margin:0 0 12px}
-@media(max-width:620px){#dpro-guide-launcher{left:10px;bottom:122px}.dpro-guide-panel{inset:10px;width:calc(100vw - 20px);height:calc(100vh - 20px)}.dpro-guide-grid{grid-template-columns:1fr}.dpro-guide-controls{display:grid;grid-template-columns:1fr 1fr}.dpro-guide-controls button{width:100%}}
-`;
-    document.head.appendChild(s);
-  }
-  function build(){
-    if(ui) return ui;
-    style();
-    const launcher=document.createElement('button');
-    launcher.id='dpro-guide-launcher';launcher.type='button';launcher.textContent='Guide Center';launcher.setAttribute('aria-controls','dpro-guide-panel');
-    const panel=document.createElement('section');
-    panel.id='dpro-guide-panel';panel.className='dpro-guide-panel';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','false');panel.setAttribute('aria-labelledby','dpro-guide-title');
-    panel.innerHTML=`<div class="dpro-guide-head"><h2 id="dpro-guide-title">DPRO MEDICAL Guide Center</h2><button type="button" data-guide-close>閉じる</button></div><div class="dpro-guide-body"><p class="dpro-guide-note">First10と同じ10ステップ・同じ順序・同じResume状態を使います。Guide Centerから業務操作を自動実行することはありません。</p><div class="dpro-guide-controls"><button type="button" data-guide-start data-primary="1">Start</button><button type="button" data-guide-resume>Resume</button><button type="button" data-guide-replay>Replay</button></div><div class="dpro-guide-grid"></div></div>`;
-    const grid=panel.querySelector('.dpro-guide-grid');
-    T.steps.forEach((step,i)=>{
-      const item=document.createElement('article');item.className='dpro-guide-item';item.dataset.stepId=step.id;item.dataset.stepOrder=String(step.order);
-      item.innerHTML=`<small>STEP ${String(step.order).padStart(2,'0')} / 10</small><h3></h3><p></p><button type="button" data-guide-index="${i}">このステップを見る</button>`;
-      item.querySelector('h3').textContent=step.title;item.querySelector('p').textContent=step.copy;grid.appendChild(item);
-    });
-    document.body.append(launcher,panel);
-    ui={launcher,panel,close:panel.querySelector('[data-guide-close]'),start:panel.querySelector('[data-guide-start]'),resume:panel.querySelector('[data-guide-resume]'),replay:panel.querySelector('[data-guide-replay]')};
-    launcher.addEventListener('click',open);
-    ui.close.addEventListener('click',close);
-    ui.start.addEventListener('click',()=>{T.start();close(false);});
-    ui.resume.addEventListener('click',()=>{T.resume();close(false);});
-    ui.replay.addEventListener('click',()=>{T.replay();close(false);});
-    panel.querySelectorAll('[data-guide-index]').forEach(btn=>btn.addEventListener('click',()=>{T.goTo(Number(btn.dataset.guideIndex));close(false);}));
-    return ui;
-  }
-  // R4 GUIDE FOCUS RECOVERY FIX V1.0: never leave Tutorial overlay open behind Guide Center.
-  function open(){build();if(T&&typeof T.close==='function')T.close(false);ui.panel.hidden=false;setTimeout(()=>ui.close.focus({preventScroll:true}),0);return snapshot();}
-  function close(returnFocus=true){if(!ui)return snapshot();ui.panel.hidden=true;if(returnFocus)setTimeout(()=>ui.launcher.focus({preventScroll:true}),0);return snapshot();}
-  function snapshot(){return Object.freeze({version:GUIDE_VERSION,count:T.steps.length,open:!!ui&&!ui.panel.hidden,stepIds:T.steps.map(s=>s.id)});}
-  function init(){build();document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui&&!ui.panel.hidden){e.preventDefault();e.stopImmediatePropagation();close();}},true);}
-  global.DPROMedicalGuideCenter=Object.freeze({version:GUIDE_VERSION,open,close,state:snapshot,count:()=>T.steps.length,steps:T.steps});
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
-})(window, document);
+(function(w,d){'use strict';
+const V='DPRO MEDICAL TUTORIAL NAVIGATION V1.2.2 / REPAIR R1',K='dpro-tutorial:medical:first10',P=K+':',E='dpro-tutorial:medical:evidence:v1.2.2',TO=2800;
+const S=Object.freeze([
+['medical-first10-01-start-tour',1,'.hero-btn.primary[onclick="startTour()"]','30秒体験を開始','公開DEMOの30秒導線を開始し、患者・医院・診療科の見方を確認します。',{preset:'STANDARD',role:'patient'}],
+['medical-first10-02-patient-tour',2,'#tour1 button','患者スマホを開く','患者側の画面例へ切り替え、予約・問診・受付がまとまる入口を確認します。',{role:'patient'}],
+['medical-first10-03-owner-tour',3,'#tour2 button','医院管理PCを見る','医院側の管理画面例へ切り替え、患者側と医院側が同じ流れでつながる構成を確認します。',null],
+['medical-first10-04-compare-presets',4,'#tour3 button','6診療科モデルを比較','STANDARD・眼科・小児科など、共通基盤の上で診療科ごとの違いを比較します。',null],
+['medical-first10-05-eye-preset',5,'.preset-card[data-preset="EYE"]','眼科PRESETへ切替','眼科モデルへ切り替え、検査進行・手術案内・術後フォローなどの表示差分を確認します。',{preset:'EYE'}],
+['medical-first10-06-patient-role',6,'.role-card[data-role="patient"]','患者画面の役割を確認','患者スマホの役割を表示し、予約・問診・受付の入口が患者向けに整理されていることを確認します。',{role:'patient'}],
+['medical-first10-07-owner-role',7,'.role-card[data-role="owner"]','医院管理PCの役割を確認','医院管理PCの画面例へ切り替え、予約・受付・待ち・診察中などの全体把握を確認します。',{role:'owner'}],
+['medical-first10-08-ipad-role',8,'.role-card[data-role="ipad"]','受付iPadの役割を確認','受付iPadの画面例へ切り替え、受付業務に必要な情報へ集中した構成を確認します。',{role:'ipad'}],
+['medical-first10-09-staff-role',9,'.role-card[data-role="staff"]','スタッフ画面の役割を確認','スタッフ画面例へ切り替え、院内進行と担当業務を確認します。',{role:'staff'}],
+['medical-first10-10-hp-role',10,'.role-card[data-role="hp"]','医院HPの公開境界を確認','医院HPの画面例へ切り替え、公開可能な予約導線・待ち状況・お知らせの見せ方を確認します。',{role:'hp'}]
+].map(a=>Object.freeze({step_id:a[0],id:a[0],order:a[1],role_or_surface:'public_demo',target_page_or_route:'medical-public-demo.html',target_selector:a[2],selector:a[2],title:a[3],body:a[4],copy:a[4],placement:'auto',target_required:true,required_view_state:a[5],resumeKey:P+String(a[1]).padStart(2,'0')})));
+const parse=x=>{try{return x?JSON.parse(x):null}catch(_){return null}},sleep=n=>new Promise(r=>setTimeout(r,n)),vis=e=>{if(!e||!e.isConnected)return false;let c=getComputedStyle(e),r=e.getBoundingClientRect();return c.display!=='none'&&c.visibility!=='hidden'&&+c.opacity!==0&&r.width>0&&r.height>0};
+function load(){let x=parse(localStorage.getItem(K));if(x)return norm(x);for(let i=10;i;i--){x=parse(localStorage.getItem(P+String(i).padStart(2,'0')));if(x)return norm(x)}return{step:0,status:'idle',updatedAt:''}}
+function norm(x){x=x&&typeof x==='object'?x:{};return{step:Math.max(0,Math.min(9,Number.isInteger(x.step)?x.step:0)),status:['idle','active','completed','skipped'].includes(x.status)?x.status:'idle',updatedAt:String(x.updatedAt||'')}}
+let st=load(),ev=parse(localStorage.getItem(E));if(!Array.isArray(ev))ev=[];let ui=null,target=null,src='none',pending=null,serial=0,raf=0;
+function rec(type,x={}){let o=Object.assign({time:new Date().toISOString(),type},x);ev.push(o);if(ev.length>200)ev=ev.slice(-200);try{localStorage.setItem(E,JSON.stringify(ev))}catch(_){};try{dispatchEvent(new CustomEvent('dpro-medical-tutorial-evidence',{detail:o}))}catch(_){};return o}
+function save(){st.updatedAt=new Date().toISOString();localStorage.setItem(K,JSON.stringify(st));S.forEach(s=>localStorage.removeItem(s.resumeKey));if(st.status==='active')localStorage.setItem(S[st.step].resumeKey,JSON.stringify(st));launcher()}
+function clearProgress(){localStorage.removeItem(K);S.forEach(s=>localStorage.removeItem(s.resumeKey));st={step:0,status:'idle',updatedAt:''}}
+function css(){if(d.getElementById('dpro-medical-tutorial-style'))return;let s=d.createElement('style');s.id='dpro-medical-tutorial-style';s.textContent=`#dpro-tutorial-launcher{position:fixed;right:12px;bottom:76px;z-index:2147483600;min-height:44px;border:0;border-radius:999px;padding:0 15px;background:#102d45;color:#fff;font-weight:900;box-shadow:0 10px 28px #0003;cursor:pointer;max-width:calc(100vw - 24px)}#dpro-tutorial-launcher:focus-visible,.dt-card button:focus-visible,.dt-drag:focus-visible{outline:3px solid #ffbf47;outline-offset:3px}.dt-card{position:fixed;right:14px;top:14px;z-index:2147483601;width:min(370px,calc(100vw - 20px));max-height:min(520px,calc(100vh - 20px));overflow:auto;background:#fff;color:#15324a;border:1px solid #bfd0dc;border-radius:18px;box-shadow:0 18px 54px #07203147;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}.dt-drag{display:flex;justify-content:space-between;gap:10px;padding:12px 14px;background:#102d45;color:#fff;border-radius:17px 17px 0 0;cursor:grab;touch-action:none;font-weight:900}.dt-body{padding:15px}.dt-prog{font-size:12px;color:#1769aa;font-weight:900}.dt-title{font-size:19px;margin:6px 0 8px}.dt-copy{font-size:14px;line-height:1.7;color:#476278;margin:0}.dt-status{margin-top:10px;padding:8px 10px;border-radius:10px;background:#eef6fb;font-size:12px}.dt-status[data-error="1"]{background:#fff0f0;color:#8f1d1d;border:1px solid #efb5b5}.dt-actions,.dt-recover{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.dt-actions button,.dt-recover button{min-height:40px;border:1px solid #c8d8e3;border-radius:10px;background:#fff;color:#15324a;padding:0 12px;font-weight:850;cursor:pointer}.dt-actions [data-primary],.dt-recover [data-primary]{background:#1769aa;color:#fff;border-color:#1769aa}.dt-close{border:0!important;background:transparent!important;color:#fff!important;font-size:20px}.dt-hi{position:fixed;z-index:2147483598;pointer-events:none;border:3px solid #1769aa;border-radius:12px;box-shadow:0 0 0 5px #1769aa26,0 0 0 9999px #081e2d12}.dt-sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:520px){.dt-card{width:calc(100vw - 20px);max-height:42vh}.dt-actions,.dt-recover{display:grid;grid-template-columns:1fr 1fr}.dt-actions button,.dt-recover button{width:100%}}`;d.head.appendChild(s)}
+function build(){if(ui)return ui;css();let l=d.createElement('button');l.id='dpro-tutorial-launcher';l.type='button';l.onclick=()=>st.status==='active'?resume():st.status==='completed'||st.status==='skipped'?replay():start();let c=d.createElement('section');c.id='dpro-tutorial-card';c.className='dt-card';c.hidden=true;c.setAttribute('role','dialog');c.innerHTML=`<div class="dt-drag" tabindex="0"><span>DPRO MEDICAL 操作ガイド</span><button class="dt-close" type="button" aria-label="閉じる">×</button></div><div class="dt-body"><div class="dt-prog"></div><h2 class="dt-title"></h2><p class="dt-copy"></p><div class="dt-status" aria-live="polite"></div><div class="dt-actions"><button data-act="back">戻る</button><button data-act="next" data-primary>次へ</button><button data-act="skip">スキップ</button><button data-act="close">閉じる</button></div><div class="dt-recover" hidden><button data-act="retry" data-primary>再試行</button><button data-act="guide">Guide Centerへ戻る</button><button data-act="close2">閉じる</button></div><div class="dt-sr" aria-live="assertive"></div></div>`;let h=d.createElement('div');h.className='dt-hi';h.hidden=true;d.body.append(l,h,c);ui={l,c,h,drag:c.querySelector('.dt-drag'),p:c.querySelector('.dt-prog'),t:c.querySelector('.dt-title'),b:c.querySelector('.dt-copy'),s:c.querySelector('.dt-status'),a:c.querySelector('.dt-actions'),r:c.querySelector('.dt-recover'),back:c.querySelector('[data-act=back]'),next:c.querySelector('[data-act=next]'),skip:c.querySelector('[data-act=skip]'),retry:c.querySelector('[data-act=retry]'),guide:c.querySelector('[data-act=guide]'),sr:c.querySelector('.dt-sr')};c.querySelector('.dt-close').onclick=close;c.querySelector('[data-act=close]').onclick=close;c.querySelector('[data-act=close2]').onclick=close;ui.back.onclick=back;ui.next.onclick=next;ui.skip.onclick=skip;ui.retry.onclick=retry;ui.guide.onclick=guide;drag();launcher();return ui}
+function launcher(){if(!ui)return;ui.l.textContent=st.status==='active'?`操作ガイドを再開（${st.step+1}/10）`:st.status==='completed'||st.status==='skipped'?'操作ガイドをもう一度見る':'操作ガイドを開始'}
+async function wait(sel){let t=Date.now();while(Date.now()-t<TO){let e;try{e=d.querySelector(sel)}catch(_){return null}if(vis(e))return e;await sleep(80)}return null}
+async function active(sel){let t=Date.now();while(Date.now()-t<800){let e=d.querySelector(sel);if(e&&e.classList.contains('active'))return true;await sleep(40)}return false}
+function safe(sel,k,v){let e=d.querySelector(sel);if(!e||!e.click)return false;e.click();rec('SAFE_VIEW_ACTION',{kind:k,value:v,selector:sel,business_mutation:0});return true}
+async function view(step){let x=step.required_view_state||{};for(let k of ['preset','role'])if(x[k]){let sel=k==='preset'?`.preset-card[data-preset="${x[k]}"]`:`.role-card[data-role="${x[k]}"]`,e=d.querySelector(sel);if(!e)return{ok:false,reason:k+'_control_missing'};if(!e.classList.contains('active'))safe(sel,k,x[k]);if(!await active(sel))return{ok:false,reason:k+'_state_not_active'}}return{ok:true}}
+function route(step){let p=String(location.pathname||'').split('/').pop();return p===step.target_page_or_route||p===''||p==='blank'||p==='test-fixture.html'}
+function hi(){raf=0;if(!ui||ui.c.hidden||!vis(target)){if(ui)ui.h.hidden=true;return}let r=target.getBoundingClientRect(),p=5,l=Math.max(2,r.left-p),t=Math.max(2,r.top-p),rr=Math.min(innerWidth-2,r.right+p),bb=Math.min(innerHeight-2,r.bottom+p);Object.assign(ui.h.style,{left:l+'px',top:t+'px',width:rr-l+'px',height:bb-t+'px'});ui.h.hidden=false}
+function sched(){if(!raf)raf=requestAnimationFrame(hi)}
+function place(){if(!ui||!target)return;ui.c.style.cssText+=';right:14px;left:auto;top:14px;bottom:auto';let tr=target.getBoundingClientRect(),cr=ui.c.getBoundingClientRect(),g=12,cand=[[tr.right+g,tr.top],[tr.left-cr.width-g,tr.top],[tr.left,tr.bottom+g],[tr.left,tr.top-cr.height-g]],best=null;for(let [x,y] of cand){x=Math.min(innerWidth-cr.width-8,Math.max(8,x));y=Math.min(innerHeight-cr.height-8,Math.max(8,y));let R={left:x,top:y,right:x+cr.width,bottom:y+cr.height},ov=Math.max(0,Math.min(R.right,tr.right)-Math.max(R.left,tr.left))*Math.max(0,Math.min(R.bottom,tr.bottom)-Math.max(R.top,tr.top));if(!best||ov<best.ov)best={x,y,ov}}Object.assign(ui.c.style,{right:'auto',bottom:'auto',left:best.x+'px',top:best.y+'px'})}
+function shell(step,i){build();ui.c.hidden=false;ui.a.hidden=false;ui.r.hidden=true;ui.s.dataset.error='0';ui.p.textContent=`STEP ${String(step.order).padStart(2,'0')} / 10`;ui.t.textContent=step.title;ui.b.textContent=step.body;ui.back.disabled=i===0;ui.next.textContent=i===9?'完了':'次へ'}
+function missing(step,i,why){build();pending=i;target=null;src='missing';ui.h.hidden=true;ui.c.hidden=false;ui.a.hidden=true;ui.r.hidden=false;ui.p.textContent=`STEP ${String(step.order).padStart(2,'0')} / 10`;ui.t.textContent=step.title;ui.b.textContent=step.body;ui.s.dataset.error='1';ui.s.textContent='画面が見つかりません。対象画面を確認して「再試行」してください。このステップは成功扱いになっていません。';rec('TARGET_MISSING',{step_id:step.step_id,order:step.order,selector:step.target_selector,reason:why,target_required:true});setTimeout(()=>ui.retry.focus({preventScroll:true}),0);return{ok:false,code:'TARGET_MISSING',stepId:step.step_id,order:step.order,reason:why}}
+async function activate(i,opt){let z=++serial;i=Math.max(0,Math.min(9,+i||0));let step=S[i];shell(step,i);pending=i;src='resolving';target=null;ui.h.hidden=true;ui.s.textContent='対象画面を確認しています…';if(!route(step))return missing(step,i,'wrong_route');let vr=await view(step);if(z!==serial)return{ok:false,code:'SUPERSEDED'};if(!vr.ok)return missing(step,i,vr.reason);let e=await wait(step.target_selector);if(z!==serial)return{ok:false,code:'SUPERSEDED'};if(!e)return missing(step,i,'selector_timeout');target=e;src='primary';pending=null;if(!(()=>{let r=e.getBoundingClientRect();return r.bottom>=6&&r.top<=innerHeight-6&&r.right>=6&&r.left<=innerWidth-6})())e.scrollIntoView({behavior:'auto',block:'center',inline:'nearest'});await sleep(30);if(!vis(e))return missing(step,i,'target_not_visible_after_scroll');st={step:i,status:'active',updatedAt:''};save();ui.s.textContent='対象を青枠で表示しています。Tutorialから予約・受付などの業務操作は自動実行しません。';ui.sr.textContent=`ステップ${step.order}、${step.title}`;sched();await sleep(20);place();sched();rec('TARGET_RESOLVED',{step_id:step.step_id,order:step.order,selector:step.target_selector,target_source:'primary',required_view_state:step.required_view_state||null,business_mutation:0});if(!opt||opt.focus!==false)setTimeout(()=>ui.next.focus({preventScroll:true}),0);return state()}
+const start=()=>{rec('START_REQUEST',{business_mutation:0});return activate(0)},resume=()=>{rec('RESUME_REQUEST',{saved_step:st.step,status:st.status,business_mutation:0});return st.status==='active'?activate(st.step):start()},replay=()=>{rec('REPLAY_REQUEST',{business_mutation:0});clearProgress();return activate(0)};
+function next(){if(pending!==null&&src==='missing')return missing(S[pending],pending,'next_blocked_target_missing');if(st.status!=='active')return start();if(st.step===9){st.status='completed';save();rec('COMPLETED',{business_mutation:0});close(false);return state()}return activate(st.step+1)}
+function back(){if(pending!==null&&src==='missing')return activate(st.status==='active'?st.step:Math.max(0,pending-1));return st.status==='active'?activate(Math.max(0,st.step-1)):start()}
+function retry(){let i=pending!==null?pending:st.step;rec('RETRY_REQUEST',{step_id:S[i].step_id,business_mutation:0});return activate(i)}
+function guide(){rec('RETURN_TO_GUIDE_CENTER',{business_mutation:0});close(false);return w.DPROMedicalGuideCenter&&w.DPROMedicalGuideCenter.open?w.DPROMedicalGuideCenter.open():state()}
+function skip(){st.status='skipped';save();rec('SKIPPED',{business_mutation:0});close(false);return state()}
+function close(focus=true){if(!ui)return state();serial++;ui.c.hidden=true;ui.h.hidden=true;target=null;pending=null;rec('CLOSE',{step:st.step,status:st.status,preserved:true,business_mutation:0});if(focus!==false)setTimeout(()=>ui.l.focus({preventScroll:true}),0);return state()}
+function state(){return Object.freeze({version:V,step:st.step,status:st.status,updatedAt:st.updatedAt,stepId:S[st.step].step_id,targetSource:src,pendingStep:pending,targetMissing:src==='missing'})}
+function drag(){let h=ui.drag,x=null;h.onpointerdown=e=>{if(e.target.closest('button,a,input,select,textarea'))return;let r=ui.c.getBoundingClientRect();x={id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top};h.setPointerCapture?.(e.pointerId);e.preventDefault()};h.onpointermove=e=>{if(!x||e.pointerId!==x.id)return;let r=ui.c.getBoundingClientRect();ui.c.style.left=Math.min(innerWidth-r.width-8,Math.max(8,e.clientX-x.dx))+'px';ui.c.style.top=Math.min(innerHeight-r.height-8,Math.max(8,e.clientY-x.dy))+'px'};h.onpointerup=h.onpointercancel=()=>x=null}
+function init(){build();addEventListener('resize',sched,{passive:true});addEventListener('scroll',sched,{passive:true,capture:true});d.addEventListener('keydown',e=>{if(!ui||ui.c.hidden)return;if(e.key==='Escape'){e.preventDefault();close()}else if(e.key==='ArrowLeft'&&src!=='missing'){e.preventDefault();back()}else if(e.key==='ArrowRight'&&src!=='missing'){e.preventDefault();next()}})}
+w.DPROMedicalTutorial=Object.freeze({version:V,storageKey:K,evidenceKey:E,steps:S,state,evidence:()=>ev.slice(),clearEvidence:()=>{ev=[];try{localStorage.removeItem(E)}catch(_){};return[]},start,resume,replay,next,back,skip,close,goTo:i=>activate(Math.max(0,Math.min(9,Math.trunc(+i||0)))),retry,open:resume});d.readyState==='loading'?d.addEventListener('DOMContentLoaded',init,{once:true}):init()
+})(window,document);
+(function(w,d){'use strict';const T=w.DPROMedicalTutorial;if(!T||T.steps.length!==10)return;let u=null;function b(){if(u)return u;let l=d.createElement('button');l.id='dpro-guide-launcher';l.type='button';l.textContent='Guide Center';l.style.cssText='position:fixed;left:12px;bottom:76px;z-index:2147483600;min-height:44px;border:1px solid #b9cbd8;border-radius:999px;padding:0 15px;background:#fff;color:#102d45;font-weight:900';let p=d.createElement('section');p.id='dpro-guide-panel';p.hidden=true;p.style.cssText='position:fixed;inset:18px;z-index:2147483602;overflow:auto;background:#f7fafc;border:1px solid #b9cbd8;border-radius:20px;padding:16px;color:#15324a';p.innerHTML='<button data-gc-close type="button">閉じる</button><h2>DPRO MEDICAL Guide Center</h2><p>First10と同じ10ステップ・同じResume状態を使います。業務操作は自動実行しません。</p><p><button data-gc-start>Start</button> <button data-gc-resume>Resume</button> <button data-gc-replay>Replay</button></p><div data-gc-list></div>';let q=p.querySelector('[data-gc-list]');T.steps.forEach((s,i)=>{let a=d.createElement('article');a.innerHTML=`<b>STEP ${String(s.order).padStart(2,'0')} / 10</b> <button data-i="${i}">${s.title}</button>`;q.appendChild(a)});d.body.append(l,p);u={l,p};l.onclick=open;p.querySelector('[data-gc-close]').onclick=close;p.querySelector('[data-gc-start]').onclick=()=>{T.start();close(false)};p.querySelector('[data-gc-resume]').onclick=()=>{T.resume();close(false)};p.querySelector('[data-gc-replay]').onclick=()=>{T.replay();close(false)};p.querySelectorAll('[data-i]').forEach(x=>x.onclick=()=>{T.goTo(+x.dataset.i);close(false)});return u}function open(){b();T.close(false);u.p.hidden=false;return state()}function close(f=true){if(!u)return state();u.p.hidden=true;if(f)setTimeout(()=>u.l.focus(),0);return state()}function state(){return Object.freeze({version:'DPRO MEDICAL GUIDE CENTER V1.2.2 / REPAIR R1',count:10,open:!!u&&!u.p.hidden,stepIds:T.steps.map(s=>s.step_id)})}w.DPROMedicalGuideCenter=Object.freeze({version:'DPRO MEDICAL GUIDE CENTER V1.2.2 / REPAIR R1',open,close,state,count:()=>10,steps:T.steps});d.readyState==='loading'?d.addEventListener('DOMContentLoaded',b,{once:true}):b();d.addEventListener('keydown',e=>{if(e.key==='Escape'&&u&&!u.p.hidden){e.preventDefault();e.stopImmediatePropagation();close()}},true)})(window,document);
