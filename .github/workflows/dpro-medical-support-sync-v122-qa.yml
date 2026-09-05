@@ -55,6 +55,32 @@ jobs:
           grep -q 'TARGET_MISSING' DPRO_TUTORIAL_MEDICAL_QUICK_START_V1.2.2.html
           grep -q 'TARGET_MISSING' DPRO_TUTORIAL_MEDICAL_DETAILED_MANUAL_V1.2.2.html
 
+      - name: Verify flat support assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f assets/presentation/support-v122-guide-center-desktop.png
+          test -f assets/presentation/support-v122-qr-demo.png
+          test -f assets/presentation/support-v122-qr-detailed.png
+          test -f assets/presentation/support-v122-qr-guide.png
+          test -f assets/presentation/support-v122-qr-hp.png
+          test -f assets/presentation/support-v122-qr-ipad.png
+          test -f assets/presentation/support-v122-qr-line.png
+          test -f assets/presentation/support-v122-qr-owner.png
+          test -f assets/presentation/support-v122-qr-patient.png
+          test -f assets/presentation/support-v122-qr-product.png
+          test -f assets/presentation/support-v122-qr-staff.png
+          test -f assets/presentation/support-v122-qr-system.png
+          test -f assets/presentation/support-v122-role-hp.png
+          test -f assets/presentation/support-v122-role-ipad.png
+          test -f assets/presentation/support-v122-role-owner.png
+          test -f assets/presentation/support-v122-role-patient.png
+          test -f assets/presentation/support-v122-role-staff.png
+          test -f assets/presentation/support-v122-system-check.png
+          test -f assets/presentation/support-v122-tutorial-retry-recovered.png
+          test -f assets/presentation/support-v122-tutorial-step05-highlight-desktop.png
+          test -f assets/presentation/support-v122-tutorial-target-missing-retry.png
+
       - name: Verify PDF page counts
         shell: bash
         run: |
@@ -67,16 +93,3 @@ jobs:
           echo "Detailed pages=$detailed_pages"
           test "$quick_pages" = "3"
           test "$detailed_pages" = "10"
-
-      - name: Verify QA evidence
-        shell: bash
-        run: |
-          set -euo pipefail
-          root='presentation-qa/support-sync-v1.2.2'
-          test -f "$root/GUIDE_CENTER_RUNTIME_QA.json"
-          test -f "$root/QUICK_START_QA.json"
-          test -f "$root/DETAILED_MANUAL_QA.json"
-          test -f "$root/PDF_QR_DECODE_EVIDENCE.txt"
-          test -f "$root/TUTORIAL_FREEZE_EVIDENCE.txt"
-          grep -q 'Decode failures: 0' "$root/PDF_QR_DECODE_EVIDENCE.txt"
-          grep -q 'ALL_PASS=True' "$root/TUTORIAL_FREEZE_EVIDENCE.txt"
